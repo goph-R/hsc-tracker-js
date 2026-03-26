@@ -3,6 +3,8 @@
 A browser-based player for HSC (AdLib Composer / HSC Tracker) music files.
 Emulates a Yamaha YM3812 (OPL2) synthesizer in JavaScript using DBOPL and the Web Audio API.
 
+![HSC Tracker screenshot](screenshot.png)
+
 ## Quick Start
 
 HSC Tracker requires a local HTTP server (AudioWorklet won't work over `file://`):
