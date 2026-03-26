@@ -1,7 +1,7 @@
 # HSC Tracker - Browser-Based AdLib/OPL2 Music Player
 
 A browser-based player for HSC (AdLib Composer / HSC Tracker) music files.
-Emulates a Yamaha YM3812 (OPL2) synthesizer entirely in JavaScript using the Web Audio API.
+Emulates a Yamaha YM3812 (OPL2) synthesizer in JavaScript using DBOPL and the Web Audio API.
 
 ## Quick Start
 
@@ -28,7 +28,7 @@ Then open `http://localhost:8000` in your browser.
 
 ## Features
 
-- Full OPL2 (YM3812) emulation in JavaScript
+- Full OPL2 (YM3812) emulation via DBOPL in JavaScript
 - HSC binary format parsing with AdPlug-compatible bit corrections
 - Tick-accurate sequencer at 18.2 Hz (PC timer frequency)
 - Pattern display with current-row highlighting and auto-scroll
@@ -40,15 +40,14 @@ Then open `http://localhost:8000` in your browser.
 ## Architecture
 
 ```
-[HSC File] → [HSC Parser] → [HSC Sequencer] → [OPL2 Emulator] → [Web Audio API] → [Speaker]
+[HSC File] → [HSC Parser] → [HSC Sequencer] → [DBOPL Emulator] → [Web Audio API] → [Speaker]
                                     ↓
                               [UI Visualization]
 ```
 
 - **HSC Parser** (`js/hsc-parser.js`): Reads the binary HSC format (instruments, order list, patterns)
 - **HSC Sequencer** (`js/hsc-sequencer.js`): Tick-based playback engine running at 18.2 Hz
-- **OPL2 Emulator** (`js/opl2.js`): Register-level YM3812 emulation with log-space synthesis
-- **Audio Worklet** (`js/audio-worklet.js`): AudioWorkletProcessor for glitch-free audio output
+- **Audio Worklet** (`js/audio-worklet.js`): DBOPL-based OPL2 emulation and AudioWorkletProcessor for glitch-free audio output
 - **UI** (`index.html`): Pattern display, controls, and visualization
 
 ## HSC Format
@@ -76,7 +75,6 @@ Vanilla JavaScript + HTML/CSS. No frameworks, no build tools, no dependencies.
 hsc-tracker/
 ├── index.html           # Main page with inline CSS and UI logic
 ├── js/
-│   ├── opl2.js          # OPL2 (YM3812) emulator with register-level API
 │   ├── hsc-parser.js    # HSC binary format parser
 │   ├── hsc-sequencer.js # Tick-based playback engine
 │   └── audio-worklet.js # AudioWorkletProcessor for Web Audio output
@@ -86,4 +84,4 @@ hsc-tracker/
 ## License
 
 Part of the DOS Game Engine project.
-OPL2 synthesis math inspired by [a1k0n/opl2](https://github.com/a1k0n/opl2) (MIT license).
+OPL2 emulation uses DBOPL, a JavaScript port of the DOSBox OPL emulator.
