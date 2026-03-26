@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HSC Tracker - AdLib/OPL2 Music Player</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --bg-dark: #12121f;
+    --bg-light: #222240;
+    --border: #333355;
+    --text: #c0c0d0;
+    --text-dim: #666680;
+    --text-bright: #e0e0f0;
+    --highlight: #4040a0;
+    --highlight-bright: #6060d0;
+    --accent: #40c060;
+    --accent-dim: #207030;
+    --row-current: #403060;
+    --note-color: #60c0e0;
+    --inst-color: #e0a040;
+    --effect-color: #a0a0c0;
+    --keyoff-color: #e06060;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Consolas', 'Courier New', 'Liberation Mono', monospace;
+    font-size: 13px;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: var(--bg-dark);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .header h1 {
+    font-size: 16px;
+    color: var(--text-bright);
+    font-weight: normal;
+    letter-spacing: 2px;
+  }
+
+  .header h1 span {
+    color: var(--accent);
+  }
+
+  .controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  button {
+    background: var(--bg-light);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 5px 14px;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 3px;
+  }
+
+  button:hover { background: var(--highlight); color: var(--text-bright); }
+  button:active { background: var(--highlight-bright); }
+  button:disabled { opacity: 0.4; cursor: default; }
+  button.active { background: var(--accent-dim); border-color: var(--accent); }
+
+  .file-info {
+    color: var(--text-dim);
+    font-size: 11px;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Info bar */
+  .info-bar {
+    display: flex;
+    align-items: center;
+    padding: 6px 16px;
+    background: var(--bg-dark);
+    border-bottom: 1px solid var(--border);
+    gap: 24px;
+    flex-shrink: 0;
+    font-size: 12px;
+  }
+
+  .info-bar label {
+    color: var(--text-dim);
+  }
+
+  .info-bar .value {
+    color: var(--accent);
+    margin-left: 4px;
+  }
+
+  .order-list {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+    overflow-x: auto;
+    max-width: 60%;
+  }
+
+  .order-entry {
+    padding: 1px 4px;
+    background: var(--bg-light);
+    border: 1px solid transparent;
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 22px;
+    text-align: center;
+  }
+
+  .order-entry.current {
+    background: var(--highlight);
+    color: var(--text-bright);
+    border-color: var(--highlight-bright);
+  }
+
+  /* Pattern view */
+  .pattern-container {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    background: var(--bg);
+  }
+
+  .pattern-header {
+    display: flex;
+    background: var(--bg-dark);
+    border-bottom: 2px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding-left: 0;
+  }
+
+  .pattern-header .col {
+    text-align: center;
+    padding: 4px 0;
+    color: var(--text-dim);
+    font-size: 11px;
+    border-right: 1px solid var(--border);
+  }
+
+  .col-row { width: 30px; min-width: 30px; }
+  .col-chan { width: 76px; min-width: 76px; }
+
+  .pattern-rows {
+    overflow-y: auto;
+    height: calc(100% - 26px);
+  }
+
+  .pattern-row {
+    display: flex;
+    border-bottom: 1px solid transparent;
+    height: 18px;
+    line-height: 18px;
+  }
+
+  .pattern-row:nth-child(4n+1) {
+    background: rgba(255,255,255,0.02);
+  }
+
+  .pattern-row.current {
+    background: var(--row-current) !important;
+  }
+
+  .pattern-row .cell {
+    border-right: 1px solid var(--border);
+    padding: 0 3px;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .cell-row {
+    width: 30px;
+    min-width: 30px;
+    text-align: center;
+    color: var(--text-dim);
+  }
+
+  .cell-chan {
+    width: 76px;
+    min-width: 76px;
+  }
+
+  .note { color: var(--note-color); }
+  .note-off { color: var(--keyoff-color); }
+  .note-inst { color: var(--inst-color); }
+  .effect { color: var(--effect-color); }
+  .empty { color: var(--text-dim); }
+
+  /* Channel levels */
+  .levels-bar {
+    display: flex;
+    padding: 6px 16px;
+    background: var(--bg-dark);
+    border-top: 1px solid var(--border);
+    gap: 0;
+    flex-shrink: 0;
+    align-items: flex-end;
+    height: 40px;
+  }
+
+  .level-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .level-col .label {
+    font-size: 9px;
+    color: var(--text-dim);
+  }
+
+  .level-bar-outer {
+    width: 76px;
+    height: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .level-col:first-child .level-bar-outer { margin-left: 30px; }
+
+  .level-bar-inner {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 50ms linear;
+  }
+
+  /* Drop zone */
+  .drop-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: var(--accent);
+    letter-spacing: 4px;
+    border: 4px dashed var(--accent);
+    margin: 16px;
+    border-radius: 8px;
+  }
+
+  .drop-overlay.active { display: flex; }
+
+  /* Instrument panel */
+  .instr-bar {
+    padding: 4px 16px;
+    background: var(--bg-dark);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    gap: 16px;
+  }
+
+  .instr-bar .inst-name {
+    color: var(--inst-color);
+  }
+
+  /* Welcome screen */
+  .welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    color: var(--text-dim);
+    gap: 12px;
+  }
+
+  .welcome h2 {
+    color: var(--text);
+    font-weight: normal;
+    font-size: 18px;
+  }
+
+  .welcome p { font-size: 13px; }
+
+  .welcome .shortcut {
+    color: var(--accent);
+    background: var(--bg-light);
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+  }
+
+  input[type="file"] { display: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span>HSC</span> Tracker</h1>
+  <div class="controls">
+    <span class="file-info" id="fileInfo">No file loaded</span>
+    <button id="btnOpen" title="Open HSC file">Open</button>
+    <button id="btnPlay" disabled title="Play (Space)">&#9654; Play</button>
+    <button id="btnStop" disabled title="Stop (Space)">&#9632; Stop</button>
+  </div>
+</div>
+
+<div class="info-bar" id="infoBar" style="display:none;">
+  <div>
+    <label>Pattern:</label><span class="value" id="infoPattern">00</span>
+  </div>
+  <div>
+    <label>Speed:</label><span class="value" id="infoSpeed">6</span>
+  </div>
+  <div>
+    <label>Order:</label>
+    <div class="order-list" id="orderList"></div>
+  </div>
+</div>
+
+<div class="welcome" id="welcomeScreen">
+  <h2>AdLib / OPL2 Music Player</h2>
+  <p>Drag &amp; drop an <span class="shortcut">.hsc</span> file here, or click <span class="shortcut">Open</span></p>
+  <p style="margin-top: 8px; font-size: 11px;">HSC files are AdLib tracker music used in DOS games and demoscene.</p>
+</div>
+
+<div class="pattern-container" id="patternContainer" style="display:none;">
+  <div class="pattern-header" id="patternHeader"></div>
+  <div class="pattern-rows" id="patternRows"></div>
+</div>
+
+<div class="levels-bar" id="levelsBar" style="display:none;"></div>
+
+<div class="instr-bar" id="instrBar" style="display:none;">
+  <span>Instruments: <span class="inst-name" id="instrCount">0</span></span>
+  <span>Patterns: <span class="inst-name" id="patternCount">0</span></span>
+  <span>Orders: <span class="inst-name" id="orderCount">0</span></span>
+</div>
+
+<div class="drop-overlay" id="dropOverlay">DROP HSC FILE</div>
+
+<input type="file" id="fileInput" accept=".hsc,.HSC">
+
+<script src="js/hsc-parser.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  // Note names for display
+  const NOTE_NAMES = ['C-', 'C#', 'D-', 'D#', 'E-', 'F-', 'F#', 'G-', 'G#', 'A-', 'A#', 'B-'];
+
+  // ---- State ----
+  let hscData = null;       // parsed HSC (for UI display)
+  let hscCompact = null;    // compact format for sending to worklet
+  let audioCtx = null;
+  let workletNode = null;
+  let isPlaying = false;
+  let channelLevels = new Float32Array(9);
+
+  // ---- DOM refs ----
+  const btnOpen = document.getElementById('btnOpen');
+  const btnPlay = document.getElementById('btnPlay');
+  const btnStop = document.getElementById('btnStop');
+  const fileInput = document.getElementById('fileInput');
+  const fileInfo = document.getElementById('fileInfo');
+  const welcomeScreen = document.getElementById('welcomeScreen');
+  const patternContainer = document.getElementById('patternContainer');
+  const patternHeader = document.getElementById('patternHeader');
+  const patternRows = document.getElementById('patternRows');
+  const infoBar = document.getElementById('infoBar');
+  const levelsBar = document.getElementById('levelsBar');
+  const instrBar = document.getElementById('instrBar');
+  const dropOverlay = document.getElementById('dropOverlay');
+  const orderListEl = document.getElementById('orderList');
+
+  // ---- File loading ----
+  btnOpen.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) loadFile(e.target.files[0]);
+  });
+
+  // Drag & drop
+  document.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropOverlay.classList.add('active');
+  });
+  document.addEventListener('dragleave', (e) => {
+    if (e.relatedTarget === null) dropOverlay.classList.remove('active');
+  });
+  document.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropOverlay.classList.remove('active');
+    if (e.dataTransfer.files.length > 0) loadFile(e.dataTransfer.files[0]);
+  });
+
+  /**
+   * Convert parsed HSC data into a compact format suitable for sending
+   * to the audio worklet via postMessage (no objects, just typed arrays).
+   */
+  function makeCompactHSC(hsc) {
+    // Instruments: 128 × 12 bytes (corrected raw bytes)
+    const instruments = [];
+    for (let i = 0; i < 128; i++) {
+      instruments.push(Array.from(hsc.instruments[i].raw));
+    }
+
+    // Order list: plain array
+    const orderList = hsc.orderList.slice();
+
+    // Patterns: flat Uint8Array per pattern (64 rows × 9 channels × 2 bytes)
+    const patterns = [];
+    for (let p = 0; p < hsc.patternCount; p++) {
+      const flat = new Uint8Array(64 * 9 * 2);
+      for (let row = 0; row < 64; row++) {
+        for (let ch = 0; ch < 9; ch++) {
+          const idx = (row * 9 + ch) * 2;
+          flat[idx] = hsc.patterns[p][row][ch].note;
+          flat[idx + 1] = hsc.patterns[p][row][ch].effect;
+        }
+      }
+      patterns.push(flat);
+    }
+
+    return { instruments, orderList, patterns, patCount: hsc.patternCount };
+  }
+
+  function loadFile(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        hscData = parseHSC(e.target.result);
+        hscCompact = makeCompactHSC(hscData);
+        fileInfo.textContent = file.name;
+        onFileLoaded();
+      } catch (err) {
+        alert('Error loading HSC file: ' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function onFileLoaded() {
+    if (isPlaying) stopPlayback();
+
+    // Update UI
+    welcomeScreen.style.display = 'none';
+    patternContainer.style.display = 'flex';
+    patternContainer.style.flexDirection = 'column';
+    infoBar.style.display = 'flex';
+    levelsBar.style.display = 'flex';
+    instrBar.style.display = 'flex';
+
+    btnPlay.disabled = false;
+    btnStop.disabled = true;
+
+    // Stats
+    document.getElementById('instrCount').textContent = hscData.instruments.length;
+    document.getElementById('patternCount').textContent = hscData.patternCount;
+    const orderLen = hscData.orderList.indexOf(0xFF);
+    document.getElementById('orderCount').textContent = orderLen >= 0 ? orderLen : hscData.orderList.length;
+
+    // Build UI
+    buildPatternHeader();
+    buildLevelsBar();
+    buildOrderList();
+    showPattern(hscData.orderList[0], 0);
+  }
+
+  // ---- Pattern display ----
+  function buildPatternHeader() {
+    let html = '<div class="col col-row">#</div>';
+    for (let ch = 0; ch < 9; ch++) {
+      html += `<div class="col col-chan">CH${ch + 1}</div>`;
+    }
+    patternHeader.innerHTML = html;
+  }
+
+  function showPattern(patIdx, highlightRow) {
+    if (!hscData || patIdx < 0 || patIdx >= hscData.patternCount) {
+      patternRows.innerHTML = '';
+      return;
+    }
+
+    const pattern = hscData.patterns[patIdx];
+    let html = '';
+
+    for (let row = 0; row < 64; row++) {
+      const isCurrent = row === highlightRow;
+      html += `<div class="pattern-row${isCurrent ? ' current' : ''}" id="row${row}">`;
+      html += `<div class="cell cell-row">${String(row).padStart(2, '0')}</div>`;
+
+      for (let ch = 0; ch < 9; ch++) {
+        const cell = pattern[row][ch];
+        html += `<div class="cell cell-chan">`;
+        html += formatCellHTML(cell.note, cell.effect);
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+
+    patternRows.innerHTML = html;
+
+    if (highlightRow >= 0) scrollToRow(highlightRow);
+  }
+
+  function formatCellHTML(noteByte, effectByte) {
+    let noteStr, noteClass;
+
+    if (noteByte === 0) {
+      noteStr = '---';
+      noteClass = 'empty';
+    } else if (noteByte & 0x80) {
+      noteStr = 'I' + String(effectByte).padStart(2, '0');
+      noteClass = 'note-inst';
+      return `<span class="${noteClass}">${noteStr}</span> <span class="empty">...</span>`;
+    } else {
+      const noteVal = noteByte - 1;
+      if (noteVal === 0x7E) {
+        noteStr = '^^^';
+        noteClass = 'note-off';
+      } else {
+        noteStr = NOTE_NAMES[noteVal % 12] + Math.floor(noteVal / 12);
+        noteClass = 'note';
+      }
+    }
+
+    let effStr;
+    if (effectByte === 0) {
+      effStr = '<span class="empty">...</span>';
+    } else {
+      const hi = (effectByte >> 4) & 0x0F;
+      const lo = effectByte & 0x0F;
+      effStr = `<span class="effect">${hi.toString(16).toUpperCase()}${lo.toString(16).toUpperCase()}</span>`;
+    }
+
+    return `<span class="${noteClass}">${noteStr}</span> ${effStr}`;
+  }
+
+  function scrollToRow(row) {
+    const rowEl = document.getElementById('row' + row);
+    if (rowEl) rowEl.scrollIntoView({ block: 'center', behavior: 'auto' });
+  }
+
+  // ---- Order list ----
+  function buildOrderList() {
+    let html = '';
+    for (let i = 0; i < hscData.orderList.length; i++) {
+      const entry = hscData.orderList[i];
+      if (entry === 0xFF) break;
+      html += `<div class="order-entry" id="order${i}">${String(entry).padStart(2, '0')}</div>`;
+    }
+    orderListEl.innerHTML = html;
+  }
+
+  function highlightOrder(pos) {
+    const entries = orderListEl.querySelectorAll('.order-entry');
+    entries.forEach(el => el.classList.remove('current'));
+    const el = document.getElementById('order' + pos);
+    if (el) {
+      el.classList.add('current');
+      el.scrollIntoView({ inline: 'center', behavior: 'auto' });
+    }
+  }
+
+  // ---- Channel levels ----
+  function buildLevelsBar() {
+    let html = '';
+    for (let ch = 0; ch < 9; ch++) {
+      html += `<div class="level-col">
+        <div class="level-bar-outer">
+          <div class="level-bar-inner" id="level${ch}"></div>
+        </div>
+      </div>`;
+    }
+    levelsBar.innerHTML = html;
+  }
+
+  function updateLevels(levels) {
+    for (let ch = 0; ch < 9; ch++) {
+      const el = document.getElementById('level' + ch);
+      if (el) {
+        const pct = Math.min(100, (levels[ch] || 0) * 100);
+        el.style.width = pct + '%';
+        if (pct > 80) el.style.background = '#e06060';
+        else if (pct > 50) el.style.background = '#e0c040';
+        else el.style.background = '#40c060';
+      }
+    }
+  }
+
+  // ---- State update from worklet ----
+  let lastPatIdx = -1;
+
+  function onStateUpdate(state) {
+    const { songPos, patRow, patIdx, speed } = state;
+
+    document.getElementById('infoPattern').textContent = String(patIdx).padStart(2, '0');
+    document.getElementById('infoSpeed').textContent = speed;
+
+    highlightOrder(songPos);
+
+    if (patIdx !== lastPatIdx) {
+      showPattern(patIdx, patRow);
+      lastPatIdx = patIdx;
+    } else {
+      const rows = patternRows.querySelectorAll('.pattern-row');
+      rows.forEach(r => r.classList.remove('current'));
+      const rowEl = document.getElementById('row' + patRow);
+      if (rowEl) {
+        rowEl.classList.add('current');
+        scrollToRow(patRow);
+      }
+    }
+  }
+
+  // ---- Audio ----
+  async function initAudio() {
+    if (audioCtx) return;
+
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)({
+      sampleRate: 48000
+    });
+
+    await audioCtx.audioWorklet.addModule('js/audio-worklet.js');
+    workletNode = new AudioWorkletNode(audioCtx, 'hsc-worklet-processor', {
+      outputChannelCount: [2]
+    });
+
+    workletNode.port.onmessage = (e) => {
+      const msg = e.data;
+      if (msg.type === 'levels') {
+        updateLevels(msg.levels);
+      } else if (msg.type === 'state') {
+        onStateUpdate(msg.state);
+      }
+    };
+
+    workletNode.connect(audioCtx.destination);
+  }
+
+  // ---- Playback control ----
+  async function startPlayback() {
+    if (!hscCompact) return;
+
+    await initAudio();
+    if (audioCtx.state === 'suspended') {
+      await audioCtx.resume();
+    }
+
+    lastPatIdx = -1;
+
+    // Send HSC data to worklet and start playback
+    workletNode.port.postMessage({ type: 'loadHSC', hsc: hscCompact });
+    workletNode.port.postMessage({ type: 'play' });
+
+    isPlaying = true;
+    btnPlay.disabled = true;
+    btnStop.disabled = false;
+  }
+
+  function stopPlayback() {
+    if (workletNode) {
+      workletNode.port.postMessage({ type: 'stop' });
+    }
+
+    isPlaying = false;
+    btnPlay.disabled = false;
+    btnStop.disabled = true;
+    updateLevels(new Float32Array(9));
+  }
+
+  btnPlay.addEventListener('click', startPlayback);
+  btnStop.addEventListener('click', stopPlayback);
+
+  // Keyboard shortcut: Space to toggle play/stop
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && hscData) {
+      e.preventDefault();
+      if (isPlaying) stopPlayback();
+      else startPlayback();
+    }
+  });
+})();
+</script>
+</body>
+</html>
