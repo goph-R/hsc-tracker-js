@@ -5,6 +5,12 @@ Emulates a Yamaha YM3812 (OPL2) synthesizer in JavaScript using DBOPL and the We
 
 ![HSC Tracker screenshot](screenshot.png)
 
+## Demo
+
+Try it online: https://hsc-tracker-js.dynart.net
+
+Example HSC files for testing are included in the `music/` folder.
+
 ## Quick Start
 
 HSC Tracker requires a local HTTP server (AudioWorklet won't work over `file://`):
@@ -80,6 +86,7 @@ hsc-tracker/
 │   ├── hsc-parser.js    # HSC binary format parser
 │   ├── hsc-sequencer.js # Tick-based playback engine
 │   └── audio-worklet.js # AudioWorkletProcessor for Web Audio output
+├── music/               # Example HSC files for testing
 └── README.md
 ```
 
