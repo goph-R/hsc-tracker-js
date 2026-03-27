@@ -1700,8 +1700,7 @@
           moveCursor(0, 1);
           return;
         case 'Tab':
-          e.preventDefault();
-          jumpChannel(e.shiftKey ? -1 : 1);
+          if (editMode) jumpChannel(e.shiftKey ? -1 : 1);
           return;
         case 'PageUp':
           e.preventDefault();
