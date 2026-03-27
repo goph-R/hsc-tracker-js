@@ -1872,6 +1872,7 @@
   });
   let instrOctave = 4;
   let instrPreviewCh = 0; // rotating channel for polyphonic preview
+  const instrKeyToCh = {}; // maps key code → channel for key-up tracking
 
   function stopNotePreview(ch) {
     if (workletNode) {
@@ -1968,12 +1969,15 @@
     if (isInstrTabActive() && !isPlaying) {
       if (e.code in KEY_TO_NOTE) {
         e.preventDefault();
+        if (instrKeyToCh[e.code] !== undefined) return; // key already held
         const semitone = KEY_TO_NOTE[e.code];
         const oct = instrOctave + Math.floor(semitone / 12);
         const note = semitone % 12;
         if (oct >= 0 && oct <= 7) {
+          const ch = instrPreviewCh;
           const noteByte = (oct * 12 + note) + 1;
-          previewNote(instrPreviewCh, noteByte, selectedInstr);
+          previewNote(ch, noteByte, selectedInstr);
+          instrKeyToCh[e.code] = ch;
           instrPreviewCh = (instrPreviewCh + 1) % 9;
         }
         return;
@@ -1981,6 +1985,7 @@
       if (e.code === 'Backquote') {
         e.preventDefault();
         for (let ch = 0; ch < 9; ch++) stopNotePreview(ch);
+        Object.keys(instrKeyToCh).forEach(k => delete instrKeyToCh[k]);
         instrPreviewCh = 0;
         return;
       }
@@ -2101,6 +2106,14 @@
       e.preventDefault();
       enterNote(KEY_TO_NOTE[e.code]);
       return;
+    }
+  });
+
+  // Key-up: stop instrument preview notes when keys are released
+  document.addEventListener('keyup', (e) => {
+    if (instrKeyToCh[e.code] !== undefined) {
+      stopNotePreview(instrKeyToCh[e.code]);
+      delete instrKeyToCh[e.code];
     }
   });
 
@@ -2522,8 +2535,20 @@
     });
   });
 
-  // Start with an empty song
-  newSong();
+  // Load default song or start with empty
+  fetch('music/INTRO.HSC')
+    .then(r => r.ok ? r.arrayBuffer() : null)
+    .then(buf => {
+      if (buf) {
+        hscData = parseHSC(buf);
+        hscCompact = makeCompactHSC(hscData);
+        fileInfo.textContent = 'INTRO.HSC';
+        onFileLoaded();
+      } else {
+        newSong();
+      }
+    })
+    .catch(() => newSong());
 })();
 </script>
 </body>
