@@ -53,8 +53,10 @@ Then open `http://localhost:8000` in your browser.
 ```
 
 - **HSC Parser** (`js/hsc-parser.js`): Reads the binary HSC format (instruments, order list, patterns)
-- **HSC Sequencer** (`js/hsc-sequencer.js`): Tick-based playback engine running at 18.2 Hz
-- **Audio Worklet** (`js/audio-worklet.js`): DBOPL-based OPL2 emulation and AudioWorkletProcessor for glitch-free audio output
+- **DBOPL** (`js/dbopl.js`): Yamaha YMF262/YM3812 OPL2 emulator (JavaScript port of DOSBox DBOPL)
+- **OPL2 Wrapper** (`js/opl2-wrapper.js`): Adapter between DBOPL and the HSC sequencer
+- **HSC Sequencer** (`js/hsc-seq.js`): Tick-based playback engine running at 18.2 Hz
+- **Audio Worklet** (`js/audio-worklet.js`): AudioWorkletProcessor for glitch-free audio output
 - **UI** (`index.html`): Pattern display, controls, and visualization
 
 ## HSC Format
@@ -83,8 +85,10 @@ hsc-tracker/
 ├── index.html           # Main page with inline CSS and UI logic
 ├── js/
 │   ├── hsc-parser.js    # HSC binary format parser
-│   ├── hsc-sequencer.js # Tick-based playback engine
-│   └── audio-worklet.js # AudioWorkletProcessor for Web Audio output
+│   ├── dbopl.js         # OPL2 emulator (DOSBox DBOPL port)
+│   ├── opl2-wrapper.js  # DBOPL adapter for the sequencer
+│   ├── hsc-seq.js       # Tick-based playback engine
+│   └── audio-worklet.js # AudioWorkletProcessor entry point
 ├── music/               # Example HSC files for testing
 └── README.md
 ```
