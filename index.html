@@ -562,6 +562,88 @@
     transition: none;
   }
 
+  /* Shortcuts panel */
+  .shortcuts-panel {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    z-index: 900;
+    padding: 16px 24px;
+    max-height: 80vh;
+    overflow-y: auto;
+    min-width: 500px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+
+  .shortcuts-panel.visible { display: block; }
+
+  .shortcuts-panel h3 {
+    font-size: 13px;
+    font-weight: normal;
+    color: var(--accent);
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+
+  .shortcuts-panel .shortcut-section {
+    margin-bottom: 12px;
+  }
+
+  .shortcuts-panel .shortcut-section h4 {
+    font-size: 11px;
+    font-weight: normal;
+    color: var(--text);
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 2px;
+  }
+
+  .shortcuts-panel table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+  }
+
+  .shortcuts-panel td {
+    padding: 1px 8px 1px 0;
+    color: var(--text-dim);
+  }
+
+  .shortcuts-panel td:first-child {
+    color: var(--text);
+    white-space: nowrap;
+    width: 140px;
+  }
+
+  .shortcuts-panel .close-btn {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 2px 6px;
+  }
+
+  .shortcuts-panel .close-btn:hover { color: var(--text-bright); }
+
+  .shortcuts-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 899;
+  }
+
+  .shortcuts-backdrop.visible { display: block; }
+
   /* Drop zone */
   .drop-overlay {
     display: none;
@@ -730,6 +812,70 @@
       <input type="checkbox" id="settingBlink" checked style="accent-color:var(--accent);">
       Blink effect on note
     </label>
+  </div>
+</div>
+
+<div class="shortcuts-backdrop" id="shortcutsBackdrop"></div>
+<div class="shortcuts-panel" id="shortcutsPanel">
+  <button class="close-btn" id="shortcutsClose">&times;</button>
+  <h3>Keyboard Shortcuts (F1)</h3>
+
+  <div class="shortcut-section">
+    <h4>Global</h4>
+    <table>
+      <tr><td>F1</td><td>Toggle this panel</td></tr>
+      <tr><td>Ctrl+S</td><td>Save song</td></tr>
+      <tr><td>Escape</td><td>Stop playback</td></tr>
+      <tr><td>Enter</td><td>Play from pattern start</td></tr>
+      <tr><td>Shift+Enter</td><td>Play from current position</td></tr>
+      <tr><td>Ctrl+Enter</td><td>Play from song start</td></tr>
+      <tr><td>Space</td><td>Toggle edit mode / Stop</td></tr>
+    </table>
+  </div>
+
+  <div class="shortcut-section">
+    <h4>Tracker - Navigation</h4>
+    <table>
+      <tr><td>Up / Down</td><td>Move cursor by row</td></tr>
+      <tr><td>Left / Right</td><td>Move between note/effect columns (edit mode)</td></tr>
+      <tr><td>Tab / Shift+Tab</td><td>Next / previous channel (edit mode)</td></tr>
+      <tr><td>Page Up / Down</td><td>Move 16 rows</td></tr>
+      <tr><td>Home / End</td><td>Jump to first / last row</td></tr>
+    </table>
+  </div>
+
+  <div class="shortcut-section">
+    <h4>Tracker - Editing (edit mode)</h4>
+    <table>
+      <tr><td>Z S X D C V G B H N J M</td><td>Notes: lower octave (C to B)</td></tr>
+      <tr><td>Q 2 W 3 E R 5 T 6 Y 7 U</td><td>Notes: upper octave (C to B)</td></tr>
+      <tr><td>` (backtick)</td><td>Key-off</td></tr>
+      <tr><td>Insert</td><td>Instrument-set command</td></tr>
+      <tr><td>Delete</td><td>Clear cell</td></tr>
+      <tr><td>Backspace</td><td>Clear cell and move up</td></tr>
+      <tr><td>0-9 A-F (on effect column)</td><td>Enter effect hex digits</td></tr>
+      <tr><td>+ / -</td><td>Shift note octave up / down</td></tr>
+      <tr><td>* / /</td><td>Shift note semitone up / down</td></tr>
+    </table>
+  </div>
+
+  <div class="shortcut-section">
+    <h4>Tracker - Clipboard</h4>
+    <table>
+      <tr><td>Ctrl+C</td><td>Copy instrument (Instruments tab)</td></tr>
+      <tr><td>Ctrl+V</td><td>Paste instrument (Instruments tab)</td></tr>
+    </table>
+  </div>
+
+  <div class="shortcut-section">
+    <h4>Instruments - Preview</h4>
+    <table>
+      <tr><td>Z S X D C V G B H N J M</td><td>Play note: lower octave</td></tr>
+      <tr><td>Q 2 W 3 E R 5 T 6 Y 7 U</td><td>Play note: upper octave</td></tr>
+      <tr><td>` (backtick)</td><td>Stop all preview notes</td></tr>
+      <tr><td>+ / -</td><td>Octave up / down</td></tr>
+      <tr><td>Ctrl+C / Ctrl+V</td><td>Copy / paste instrument</td></tr>
+    </table>
   </div>
 </div>
 
@@ -1705,8 +1851,27 @@
     }
   }
 
+  // ---- Shortcuts panel ----
+  const shortcutsPanel = document.getElementById('shortcutsPanel');
+  const shortcutsBackdrop = document.getElementById('shortcutsBackdrop');
+
+  function toggleShortcuts() {
+    shortcutsPanel.classList.toggle('visible');
+    shortcutsBackdrop.classList.toggle('visible');
+  }
+
+  document.getElementById('shortcutsClose').addEventListener('click', toggleShortcuts);
+  shortcutsBackdrop.addEventListener('click', toggleShortcuts);
+
   // ---- Keyboard handling ----
   document.addEventListener('keydown', (e) => {
+    // F1: toggle shortcuts panel (always available)
+    if (e.code === 'F1') {
+      e.preventDefault();
+      toggleShortcuts();
+      return;
+    }
+
     if (!hscData) return;
 
     // Prevent Tab from changing browser focus
