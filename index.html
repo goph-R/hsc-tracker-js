@@ -1807,6 +1807,7 @@
 
   function deleteCell() {
     writeNoteToPattern(cursorRow, cursorCh, 0, 0);
+    advanceCursor();
   }
 
   function deleteCellAndMoveUp() {
