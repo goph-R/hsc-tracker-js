@@ -1426,13 +1426,14 @@
 
   function renderCursor() {
     clearCursor();
-    if (!editMode || cells.length === 0) return;
-    // Highlight cell
+    if (cells.length === 0) return;
+    // Always move the row highlight
+    setCurrentRow(cursorRow);
+    // Only show cell cursor in edit mode
+    if (!editMode) return;
     const c = cells[cursorRow][cursorCh];
     const el = cursorCol === 0 ? c.note : c.effect;
     el.classList.add('cursor');
-    // Move current row to cursor
-    setCurrentRow(cursorRow);
   }
 
   function moveCursor(dRow, dCol) {
@@ -1617,12 +1618,17 @@
       return;
     }
 
+    // Ctrl+Enter: play from beginning of song
     // Enter: play/pause from beginning of current pattern
     // Shift+Enter or Alt+Enter: play/pause from current position
     if (e.code === 'Enter') {
       e.preventDefault();
       if (isPlaying) {
         stopPlayback();
+      } else if (e.ctrlKey) {
+        // Play from beginning of song
+        selectOrderRow(0);
+        startPlayback();
       } else if (e.shiftKey || e.altKey) {
         // Play from current position
         startPlaybackFrom(orderSelectedIdx, cursorRow);
@@ -1669,6 +1675,50 @@
       return;
     }
 
+    // Navigation (works in both edit and non-edit mode on Tracker tab)
+    if (!isInstrTabActive()) {
+      switch (e.code) {
+        case 'ArrowUp':
+          e.preventDefault();
+          moveCursor(-1, 0);
+          return;
+        case 'ArrowDown':
+          e.preventDefault();
+          moveCursor(1, 0);
+          return;
+        case 'ArrowLeft':
+          e.preventDefault();
+          moveCursor(0, -1);
+          return;
+        case 'ArrowRight':
+          e.preventDefault();
+          moveCursor(0, 1);
+          return;
+        case 'Tab':
+          e.preventDefault();
+          jumpChannel(e.shiftKey ? -1 : 1);
+          return;
+        case 'PageUp':
+          e.preventDefault();
+          moveCursor(-16, 0);
+          return;
+        case 'PageDown':
+          e.preventDefault();
+          moveCursor(16, 0);
+          return;
+        case 'Home':
+          e.preventDefault();
+          cursorRow = 0;
+          renderCursor();
+          return;
+        case 'End':
+          e.preventDefault();
+          cursorRow = 63;
+          renderCursor();
+          return;
+      }
+    }
+
     // The rest only applies in edit mode
     if (!editMode) return;
 
@@ -1690,48 +1740,6 @@
       writeNoteToPattern(cursorRow, cursorCh, noteVal + 1, cell.effect);
       renderCursor();
       return;
-    }
-
-    // Navigation
-    switch (e.code) {
-      case 'ArrowUp':
-        e.preventDefault();
-        moveCursor(-1, 0);
-        return;
-      case 'ArrowDown':
-        e.preventDefault();
-        moveCursor(1, 0);
-        return;
-      case 'ArrowLeft':
-        e.preventDefault();
-        moveCursor(0, -1);
-        return;
-      case 'ArrowRight':
-        e.preventDefault();
-        moveCursor(0, 1);
-        return;
-      case 'Tab':
-        e.preventDefault();
-        jumpChannel(e.shiftKey ? -1 : 1);
-        return;
-      case 'PageUp':
-        e.preventDefault();
-        moveCursor(-16, 0);
-        return;
-      case 'PageDown':
-        e.preventDefault();
-        moveCursor(16, 0);
-        return;
-      case 'Home':
-        e.preventDefault();
-        cursorRow = 0;
-        renderCursor();
-        return;
-      case 'End':
-        e.preventDefault();
-        cursorRow = 63;
-        renderCursor();
-        return;
     }
 
     // Key-off (backtick)
