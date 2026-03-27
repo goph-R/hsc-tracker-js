@@ -950,12 +950,13 @@
   }
   function doNew() { if (confirmIfLoaded()) newSong(); }
   function doOpen() {
-    if (confirmIfLoaded()) { fileInput.value = ''; fileInput.click(); }
+    fileInput.value = '';
+    fileInput.click();
   }
   document.getElementById('btnNew').addEventListener('click', doNew);
   btnOpen.addEventListener('click', doOpen);
   fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) loadFile(e.target.files[0]);
+    if (e.target.files.length > 0 && confirmIfLoaded()) loadFile(e.target.files[0]);
   });
 
   // Drag & drop
@@ -969,7 +970,7 @@
   document.addEventListener('drop', (e) => {
     e.preventDefault();
     dropOverlay.classList.remove('active');
-    if (e.dataTransfer.files.length > 0) loadFile(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files.length > 0 && confirmIfLoaded()) loadFile(e.dataTransfer.files[0]);
   });
 
   /**
