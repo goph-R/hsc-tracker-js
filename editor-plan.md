@@ -13,6 +13,15 @@ Scream Tracker, FastTracker II, etc.).
 - Note encoding: 0 = empty, 1-126 = note (value-1 gives semitone+octave), 0x7F = key-off, 0x80+ = instrument set
 - No keyboard handling beyond Space (play/stop toggle)
 
+## UI Layout
+
+### Tabs
+Two tabs under the "HSC Tracker" header:
+- **Tracker** - pattern editor, order list, playback controls
+- **Instruments** - instrument parameter editor (future, Phase 5)
+
+The Instruments tab shows the currently loaded instruments for editing.
+
 ## Phase 1: Edit mode & cursor navigation
 
 ### Edit mode toggle
@@ -20,11 +29,12 @@ Scream Tracker, FastTracker II, etc.).
   different keys or make Space context-sensitive: play/stop when not in edit mode, toggle
   edit when a file is loaded and stopped)
 - Visual indicator in the header/info bar showing "EDIT" when active
-- Edit mode cursor: highlighted cell in the pattern grid (row + channel)
+- Edit mode cursor: highlighted cell in the pattern grid (row + channel + column)
 
 ### Cursor movement
 - **Up / Down arrows**: move cursor by one row
-- **Left / Right arrows**: move cursor between channels
+- **Left / Right arrows**: move cursor between columns (note → effect → next channel's note → ...)
+- **Tab / Shift+Tab**: jump to the next / previous channel (skipping columns)
 - **Page Up / Page Down**: move cursor by 16 rows
 - **Home / End**: jump to first / last row of the pattern
 - Cursor should be visible at all times (auto-scroll the pattern view)
@@ -50,7 +60,7 @@ C  C# D  D# E  F  F# G  G# A  A# B      C  C# D  D# E  F  F# G  G# A  A# B
 - After entering a note, cursor advances by the edit step
 
 ### Key-off
-- **Right Shift**: enters a key-off event (`^^^`) at the cursor position
+- **Backtick (`` ` ``)**: enters a key-off event (`^^^`) at the cursor position
 
 ### Delete / clear
 - **Delete**: clear the current cell (set note and effect to 0)
@@ -59,13 +69,14 @@ C  C# D  D# E  F  F# G  G# A  A# B      C  C# D  D# E  F  F# G  G# A  A# B
 ### Instrument selection
 - Current instrument shown in the UI
 - **Numpad +/-** or dedicated keys to change current instrument
-- When a note is entered, the current instrument number is stored alongside it
-  (using the HSC instrument-set encoding: 0x80 | instrument_index in the note byte,
-  followed by instrument number in the effect byte, inserted before the actual note)
+- **Insert**: enters an instrument-set command (`Ins`) at the cursor position
+  (HSC encoding: 0x80 | instrument_index in the note byte, instrument number in the
+  effect byte). This is a manual action — instruments are NOT automatically inserted
+  when entering notes.
 
 ### Effect entry
-- After the note column, tab into the effect column
-- Type hex digits for effect values
+- When cursor is in the effect column (navigated via **Left/Right**),
+  type hex digits for effect values
 - Effects: pitch slide up/down (1/2), set volume (3), speed (5), pattern break (7),
   position jump (6), feedback (F)
 
@@ -91,30 +102,59 @@ C  C# D  D# E  F  F# G  G# A  A# B      C  C# D  D# E  F  F# G  G# A  A# B
 
 ## Phase 4: Order list editing
 
-### Order list UI
-- The existing order list display becomes interactive/editable
-- Click an entry to select it, double-click to jump to that position
+### Order list UI (FastTracker II style)
+A vertical double-column list showing **index** (row number) and **pattern number**,
+similar to FastTracker II / Milky Tracker.
 
-### Order list operations
-- **Insert**: add a pattern reference at the current position (shift subsequent entries)
-- **Delete**: remove the current entry (shift subsequent entries)
-- **Change**: modify the pattern number at the current position (type a number or use +/-)
+Four buttons next to the list:
+- **Insert**: insert the current pattern number after the current row
+- **Delete**: delete the current row (shift subsequent entries up)
+- **+**: increase the pattern number on the current row
+- **-**: decrease the pattern number on the current row
+
+### Order list constraints
 - Maximum 51 entries including the 0xFF terminator
 - Order list always ends with 0xFF (auto-maintained)
+- Pattern numbers clamped to 0-49 (HSC format limit)
 
 ### Order list navigation
-- Order list gets its own focus/cursor when clicked or tabbed into
-- Keyboard shortcuts to move between order entries
+- Click a row to select it; double-click to jump to that position for playback
+- Arrow keys to move between rows when the order list has focus
 
 ## Phase 5 (later): Instrument editor
 
-Instrument editing will be added in a future phase. This includes:
-- Visual editor for the 12-byte OPL2 instrument parameters
-- ADSR envelope visualization
-- Waveform selection
-- Feedback/connection settings
-- Test note playback for auditioning instruments
-- Instrument copy/paste/swap
+Instrument editing on the **Instruments** tab. Works with currently loaded instruments
+(no need to load a separate file). Each HSC instrument is 12 bytes mapping to OPL2 registers.
+
+### Layout
+- **Left side**: instrument list (0-127), click to select
+- **Right side**: parameter editor for the selected instrument
+
+### Parameter editor — two columns: Modulator | Carrier
+Each operator gets the same set of controls:
+- **Attack / Decay / Sustain / Release** — sliders (4-bit values each, 0-15)
+- **Output Level** — slider (6-bit, 0-63, where 0 = loudest)
+- **Multiplier** — stepper (0-15)
+- **KSL** (Key Scale Level) — dropdown (0-3)
+- **Waveform** — visual selector showing the 4 wave shapes (sine, half-sine, abs-sine, quarter-sine)
+- **Tremolo / Vibrato / Sustain / KSR** — toggle checkboxes
+
+### Global parameters (below the two columns)
+- **Feedback** (0-7) — stepper or slider
+- **Connection** — toggle: FM (modulator→carrier) vs AM (additive), with a small routing diagram
+- **Fine-tune** (byte 11) — slider or number input
+
+### Visual feedback
+- ADSR envelope graph that updates live as sliders are dragged
+- FM routing diagram (mod→car vs mod+car)
+
+### Test controls
+- Piano keys or keyboard shortcut to play a test note on a channel while editing
+- Octave selector for test notes
+
+### Instrument management
+- Copy/Paste instrument (Ctrl+C/V in the instrument list)
+- Right-click to duplicate/swap
 
 ## Phase 6 (later): Save / Load
 
