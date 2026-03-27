@@ -36,9 +36,9 @@
     color: var(--text);
     font-family: 'Consolas', 'Courier New', 'Liberation Mono', monospace;
     font-size: 13px;
-    zoom: 1.4;
+    zoom: 1.33;
     overflow: hidden;
-    height: calc(100vh / 1.4);
+    height: calc(100vh / 1.33);
     display: flex;
     flex-direction: column;
   }
@@ -735,6 +735,25 @@
         </table>
       </div>
       <div class="shortcut-section">
+        <h4>Effects</h4>
+        <table>
+          <tr><td>00</td><td>No effect</td></tr>
+          <tr><td>01</td><td>Pattern break</td></tr>
+          <tr><td>03</td><td>Fade in</td></tr>
+          <tr><td>05</td><td>Percussion mode on</td></tr>
+          <tr><td>06</td><td>Percussion mode off</td></tr>
+          <tr><td>1x</td><td>Pitch slide up (x = speed)</td></tr>
+          <tr><td>2x</td><td>Pitch slide down (x = speed)</td></tr>
+          <tr><td>5x</td><td>Set percussion</td></tr>
+          <tr><td>6x</td><td>Set feedback (x = 0-7)</td></tr>
+          <tr><td>Ax</td><td>Set carrier volume (x = 0-F)</td></tr>
+          <tr><td>Bx</td><td>Set modulator volume (x = 0-F)</td></tr>
+          <tr><td>Cx</td><td>Set instrument volume (x = 0-F)</td></tr>
+          <tr><td>Dx</td><td>Position jump (x = order pos)</td></tr>
+          <tr><td>Fx</td><td>Set speed (x = 0-F)</td></tr>
+        </table>
+      </div>
+      <div class="shortcut-section">
         <h4>Other</h4>
         <table>
           <tr><td>Ctrl+S</td><td>Save song</td></tr>
@@ -824,6 +843,10 @@
       <input type="checkbox" id="settingBlink" checked style="accent-color:var(--accent);">
       Blink effect on note
     </label>
+    <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text); cursor:pointer; margin-top:8px;">
+      <input type="checkbox" id="settingHelp" checked style="accent-color:var(--accent);">
+      Help visible
+    </label>
   </div>
 </div>
 
@@ -863,6 +886,7 @@
   // ---- Settings ----
   let settings = {
     blinkOnNote: true,
+    helpVisible: true,
   };
   // Load from localStorage
   try {
@@ -870,11 +894,28 @@
     if (saved) Object.assign(settings, saved);
   } catch (e) {}
 
+  function saveSettings() {
+    localStorage.setItem('hsc-tracker-settings', JSON.stringify(settings));
+  }
+
   const settingBlinkEl = document.getElementById('settingBlink');
   settingBlinkEl.checked = settings.blinkOnNote;
   settingBlinkEl.addEventListener('change', () => {
     settings.blinkOnNote = settingBlinkEl.checked;
-    localStorage.setItem('hsc-tracker-settings', JSON.stringify(settings));
+    saveSettings();
+  });
+
+  const settingHelpEl = document.getElementById('settingHelp');
+  settingHelpEl.checked = settings.helpVisible;
+  function applyHelpVisible() {
+    document.getElementById('trackerShortcuts').classList.toggle('hidden', !settings.helpVisible);
+    document.getElementById('instrShortcuts').classList.toggle('hidden', !settings.helpVisible);
+  }
+  applyHelpVisible();
+  settingHelpEl.addEventListener('change', () => {
+    settings.helpVisible = settingHelpEl.checked;
+    saveSettings();
+    applyHelpVisible();
   });
 
   // Note names for display
@@ -1805,8 +1846,10 @@
   const instrShortcuts = document.getElementById('instrShortcuts');
 
   function toggleShortcuts() {
-    trackerShortcuts.classList.toggle('hidden');
-    instrShortcuts.classList.toggle('hidden');
+    settings.helpVisible = !settings.helpVisible;
+    settingHelpEl.checked = settings.helpVisible;
+    saveSettings();
+    applyHelpVisible();
   }
 
   // ---- Keyboard handling ----
