@@ -391,29 +391,6 @@ var DBOPL;
         }
     }
     DBOPL.Channel = Channel;
-})(DBOPL || (DBOPL = {}));
-/*
- *  Copyright (C) 2002-2015  The DOSBox Team
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
- */
-/*
-* 2019 - Typescript Version: Thomas Zeugner
-*/
-var DBOPL;
-(function (DBOPL) {
     class Chip {
         constructor() {
             /// Frequency scales for the different multiplications
@@ -806,29 +783,6 @@ var DBOPL;
         }
     }
     DBOPL.Chip = Chip;
-})(DBOPL || (DBOPL = {}));
-/*
- *  Copyright (C) 2002-2015  The DOSBox Team
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
- */
-/*
-* 2019 - Typescript Version: Thomas Zeugner
-*/
-var DBOPL;
-(function (DBOPL) {
     class GlobalMembers {
         static EnvelopeSelectShift(val /* UInt8  */) {
             if (val < 13 * 4) {
@@ -1010,29 +964,6 @@ var DBOPL;
     GlobalMembers.KslShiftTable = new Uint8Array([31, 1, 2, 0]); /** UInt8 */
     GlobalMembers.doneTables = false;
     DBOPL.GlobalMembers = GlobalMembers;
-})(DBOPL || (DBOPL = {}));
-/*
- *  Copyright (C) 2002-2015  The DOSBox Team
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
- */
-/*
-* 2019 - Typescript Version: Thomas Zeugner
-*/
-var DBOPL;
-(function (DBOPL) {
     class Handler {
         constructor() {
             this.chip = new DBOPL.Chip();
@@ -1063,29 +994,6 @@ var DBOPL;
         }
     }
     DBOPL.Handler = Handler;
-})(DBOPL || (DBOPL = {}));
-/*
- *  Copyright (C) 2002-2015  The DOSBox Team
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
- */
-/*
-* 2019 - Typescript Version: Thomas Zeugner
-*/
-var DBOPL;
-(function (DBOPL) {
     class MixerChannel {
         constructor(buffer, channels) {
             this.buffer = buffer;
@@ -1151,29 +1059,6 @@ var DBOPL;
         }
     }
     DBOPL.MixerChannel = MixerChannel;
-})(DBOPL || (DBOPL = {}));
-/*
- *  Copyright (C) 2002-2015  The DOSBox Team
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
- */
-/*
-* 2019 - Typescript Version: Thomas Zeugner
-*/
-var DBOPL;
-(function (DBOPL) {
     var Operator20Masks;
     (function (Operator20Masks) {
         Operator20Masks[Operator20Masks["MASK_KSR"] = 16] = "MASK_KSR";
@@ -1485,45 +1370,6 @@ var DBOPL;
         }
     }
     DBOPL.Operator = Operator;
-})(DBOPL || (DBOPL = {}));
-/*
- *  Copyright (C) 2002-2015  The DOSBox Team
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
- */
-/*
-* 2019 - Typescript Version: Thomas Zeugner
-*/
-/*
-    DOSBox implementation of a combined Yamaha YMF262 and Yamaha YM3812 emulator.
-    Enabling the opl3 bit will switch the emulator to stereo opl3 output instead of regular mono opl2
-    Except for the table generation it's all integer math
-    Can choose different types of generators, using muls and bigger tables, try different ones for slower platforms
-    The generation was based on the MAME implementation but tried to have it use less memory and be faster in general
-    MAME uses much bigger envelope tables and this will be the biggest cause of it sounding different at times
-
-    //TODO Don't delay first operator 1 sample in opl3 mode
-    //TODO Maybe not use class method pointers but a regular function pointers with operator as first parameter
-    //TODO Fix panning for the Percussion channels, would any opl3 player use it and actually really change it though?
-    //TODO Check if having the same accuracy in all frequency multipliers sounds better or not
-
-    //DUNNO Keyon in 4op, switch to 2op without keyoff.
-*/
-/* $Id: dbopl.cpp,v 1.10 2009-06-10 19:54:51 harekiet Exp $ */
-var DBOPL;
-(function (DBOPL) {
     var SynthMode;
     (function (SynthMode) {
         SynthMode[SynthMode["sm2AM"] = 0] = "sm2AM";
@@ -1572,8 +1418,5 @@ var DBOPL;
     }
     DBOPL.OPL = OPL;
 })(DBOPL || (DBOPL = {}));
-
-
-// ---- OPL2 Wrapper (adapts DBOPL to the interface HSCSeq expects) ----
 
 export { DBOPL };
