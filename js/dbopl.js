@@ -17,6 +17,7 @@
  */
 /*
 * 2019 - Typescript Version: Thomas Zeugner
+* 2026 - JavaScript Version: Claude (Anthropic)
 */
 var DBOPL;
 (function (DBOPL) {
