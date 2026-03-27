@@ -31,6 +31,8 @@ class HSCSeq {
 
     // adl_freq: B0 register shadow for each channel
     this.adl_freq = new Uint8Array(9);
+    // Note trigger flags (set per tick, reset after state is read)
+    this._chTriggered = new Uint8Array(9);
   }
 
   load(hsc) {
@@ -299,6 +301,7 @@ class HSCSeq {
 
       this.opl.write(0xb0 + chan, 0); // key-off first
       this.setfreq(chan, Fnr);
+      this._chTriggered[chan] = 1;
 
       if (this.mode6) {
         switch (chan) {
@@ -335,13 +338,16 @@ class HSCSeq {
   }
 
   _makeState(pattnr) {
-    return {
+    const state = {
       songPos: this.songpos,
       patRow: this.pattpos === 0 ? 63 : this.pattpos - 1,
       patIdx: (pattnr !== undefined && pattnr < 50) ? pattnr : 0,
       speed: this.speed,
-      chKeyOn: Array.from(this.adl_freq, f => (f & 32) ? 1 : 0),
+      chTriggered: this._chTriggered ? Array.from(this._chTriggered) : new Array(9).fill(0),
     };
+    // Reset triggers after reading
+    if (this._chTriggered) this._chTriggered.fill(0);
+    return state;
   }
 }
 
