@@ -416,7 +416,9 @@
   <h1><span>HSC</span> Tracker</h1>
   <div class="controls">
     <span class="file-info" id="fileInfo">No file loaded</span>
+    <button id="btnNew" title="New song">New</button>
     <button id="btnOpen" title="Open HSC file">Open</button>
+    <button id="btnSave" disabled title="Save HSC file">Save</button>
     <button id="btnPlay" disabled title="Play (Space)">&#9654; Play</button>
     <button id="btnStop" disabled title="Stop (Space)">&#9632; Stop</button>
   </div>
@@ -438,6 +440,9 @@
   <div class="info-bar" id="infoBar">
     <div>
       <label>Pattern:</label><span class="value" id="infoPattern">00</span>
+      <button id="btnPatNew" title="New empty pattern" style="margin-left:8px;padding:2px 6px;font-size:10px;">New</button>
+      <button id="btnPatDup" title="Duplicate current pattern" style="padding:2px 6px;font-size:10px;">Dup</button>
+      <button id="btnPatDel" title="Delete current pattern" style="padding:2px 6px;font-size:10px;">Del</button>
     </div>
     <div>
       <label>Speed:</label><span class="value" id="infoSpeed">6</span>
@@ -556,6 +561,7 @@
   });
 
   // ---- File loading ----
+  document.getElementById('btnNew').addEventListener('click', newSong);
   btnOpen.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', (e) => {
     if (e.target.files.length > 0) loadFile(e.target.files[0]);
@@ -606,6 +612,38 @@
     return { instruments, orderList, patterns, patCount: hsc.patternCount };
   }
 
+  function newSong() {
+    if (isPlaying) stopPlayback();
+
+    // Create blank instruments (128 × 12 bytes)
+    const instruments = [];
+    for (let i = 0; i < 128; i++) {
+      const raw = new Uint8Array(12);
+      instruments.push({
+        raw,
+        carrierTremVibrSustKSR: 0, modulatorTremVibrSustKSR: 0,
+        carrierTL: 0, modulatorTL: 0,
+        carrierAD: 0, modulatorAD: 0,
+        carrierSR: 0, modulatorSR: 0,
+        feedbackConnection: 0,
+        carrierWaveform: 0, modulatorWaveform: 0,
+        pitchSlide: 0,
+      });
+    }
+
+    // Order list: one entry pointing to pattern 0, then terminator
+    const orderList = new Array(51).fill(0xFF);
+    orderList[0] = 0;
+
+    // One empty pattern
+    const patterns = [createEmptyPattern()];
+
+    hscData = { instruments, orderList, patterns, patternCount: 1 };
+    hscCompact = makeCompactHSC(hscData);
+    fileInfo.textContent = 'untitled.hsc';
+    onFileLoaded();
+  }
+
   function loadFile(file) {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -633,6 +671,7 @@
 
     btnPlay.disabled = false;
     btnStop.disabled = true;
+    document.getElementById('btnSave').disabled = false;
 
     // Stats
     document.getElementById('instrCount').textContent = hscData.instruments.length;
@@ -864,6 +903,7 @@
     if (el) el.querySelector('.order-pat').textContent = String(val).padStart(2, '0');
     // Show the new pattern
     if (val < hscData.patternCount) {
+      document.getElementById('infoPattern').textContent = String(val).padStart(2, '0');
       showPattern(val, editMode ? cursorRow : 0);
       if (editMode) renderCursor();
     }
@@ -879,6 +919,93 @@
   document.getElementById('btnOrderDelete').addEventListener('click', orderDelete);
   document.getElementById('btnOrderPlus').addEventListener('click', () => orderChangePat(1));
   document.getElementById('btnOrderMinus').addEventListener('click', () => orderChangePat(-1));
+
+  // ---- Pattern management ----
+  function createEmptyPattern() {
+    const rows = [];
+    for (let row = 0; row < 64; row++) {
+      const cells = [];
+      for (let ch = 0; ch < 9; ch++) {
+        cells.push({ note: 0, effect: 0 });
+      }
+      rows.push(cells);
+    }
+    return rows;
+  }
+
+  function createEmptyCompactPattern() {
+    return new Uint8Array(64 * 9 * 2);
+  }
+
+  function patternNew() {
+    if (hscData.patternCount >= 50) {
+      alert('Maximum 50 patterns (HSC format limit)');
+      return;
+    }
+    hscData.patterns.push(createEmptyPattern());
+    hscData.patternCount++;
+    hscCompact.patterns.push(createEmptyCompactPattern());
+    hscCompact.patCount = hscData.patternCount;
+    document.getElementById('patternCount').textContent = hscData.patternCount;
+  }
+
+  function patternDuplicate() {
+    if (hscData.patternCount >= 50) {
+      alert('Maximum 50 patterns (HSC format limit)');
+      return;
+    }
+    const src = hscData.patterns[currentPatIdx];
+    const dup = [];
+    for (let row = 0; row < 64; row++) {
+      const cells = [];
+      for (let ch = 0; ch < 9; ch++) {
+        cells.push({ note: src[row][ch].note, effect: src[row][ch].effect });
+      }
+      dup.push(cells);
+    }
+    hscData.patterns.push(dup);
+    hscData.patternCount++;
+    // Compact copy
+    const srcCompact = hscCompact.patterns[currentPatIdx];
+    const dupCompact = new Uint8Array(srcCompact);
+    hscCompact.patterns.push(dupCompact);
+    hscCompact.patCount = hscData.patternCount;
+    document.getElementById('patternCount').textContent = hscData.patternCount;
+  }
+
+  function patternDelete() {
+    if (hscData.patternCount <= 1) {
+      alert('Cannot delete the last pattern');
+      return;
+    }
+    const delIdx = currentPatIdx;
+    if (!confirm(`Delete pattern ${String(delIdx).padStart(2, '0')}?`)) return;
+
+    hscData.patterns.splice(delIdx, 1);
+    hscData.patternCount--;
+    hscCompact.patterns.splice(delIdx, 1);
+    hscCompact.patCount = hscData.patternCount;
+
+    // Update order list references
+    const orderLen = getOrderLength();
+    for (let i = 0; i < orderLen; i++) {
+      if (hscData.orderList[i] === delIdx) {
+        hscData.orderList[i] = 0; // point to pattern 0
+      } else if (hscData.orderList[i] > delIdx) {
+        hscData.orderList[i]--;
+      }
+    }
+    syncOrderToCompact();
+    buildOrderList();
+
+    document.getElementById('patternCount').textContent = hscData.patternCount;
+    // Show a valid pattern
+    selectOrderRow(orderSelectedIdx);
+  }
+
+  document.getElementById('btnPatNew').addEventListener('click', patternNew);
+  document.getElementById('btnPatDup').addEventListener('click', patternDuplicate);
+  document.getElementById('btnPatDel').addEventListener('click', patternDelete);
 
   // ---- Channel state scanner ----
   // Walk through the song up to (songPos, pattPos) and collect
@@ -1039,6 +1166,59 @@
 
   btnPlay.addEventListener('click', startPlayback);
   btnStop.addEventListener('click', stopPlayback);
+
+  // ---- Save HSC ----
+  function serializeHSC() {
+    const patCount = hscData.patternCount;
+    const fileSize = 1536 + 51 + patCount * 1152;
+    const out = new Uint8Array(fileSize);
+
+    // 1. Instruments (128 × 12 bytes) — reverse bit corrections
+    for (let i = 0; i < 128; i++) {
+      const raw = hscData.instruments[i].raw;
+      const offset = i * 12;
+      for (let j = 0; j < 12; j++) out[offset + j] = raw[j];
+      // Reverse KSL/TL bit fix
+      out[offset + 2] ^= (out[offset + 2] & 0x40) << 1;
+      out[offset + 3] ^= (out[offset + 3] & 0x40) << 1;
+      // Reverse pitch slide normalization
+      out[offset + 11] = raw[11] << 4;
+    }
+
+    // 2. Order list (51 bytes at offset 0x0600)
+    for (let i = 0; i < 51; i++) {
+      out[0x0600 + i] = i < hscData.orderList.length ? hscData.orderList[i] : 0xFF;
+    }
+
+    // 3. Patterns (64 rows × 9 channels × 2 bytes each)
+    for (let p = 0; p < patCount; p++) {
+      const patOffset = 0x0633 + p * 1152;
+      const pat = hscData.patterns[p];
+      for (let row = 0; row < 64; row++) {
+        for (let ch = 0; ch < 9; ch++) {
+          const idx = patOffset + (row * 9 + ch) * 2;
+          out[idx] = pat[row][ch].note;
+          out[idx + 1] = pat[row][ch].effect;
+        }
+      }
+    }
+
+    return out;
+  }
+
+  function saveFile() {
+    if (!hscData) return;
+    const data = serializeHSC();
+    const blob = new Blob([data], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (fileInfo.textContent || 'untitled').replace(/\.[^.]*$/, '') + '.hsc';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  document.getElementById('btnSave').addEventListener('click', saveFile);
 
   // ---- Edit mode & cursor ----
   function toggleEditMode() {
