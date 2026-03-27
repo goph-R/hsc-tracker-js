@@ -68,6 +68,15 @@ class HSCSeq {
     this.rewind();
   }
 
+  startFrom(songPos, pattPos) {
+    if (!this.hsc) return;
+    this.rewind();
+    this.songpos = songPos;
+    this.pattpos = pattPos;
+    this.del = 1;
+    this.playing = true;
+  }
+
   stop() {
     this.playing = false;
     for (let ch = 0; ch < 9; ch++) {

@@ -18,6 +18,7 @@
     --accent: #40c060;
     --accent-dim: #207030;
     --row-current: #403060;
+    --row-edit: #2a4030;
     --note-color: #60c0e0;
     --inst-color: #e0a040;
     --effect-color: #a0a0c0;
@@ -90,6 +91,53 @@
     white-space: nowrap;
   }
 
+  /* Tabs */
+  .tab-bar {
+    display: flex;
+    background: var(--bg-dark);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    padding: 0 16px;
+    gap: 0;
+  }
+
+  .tab {
+    padding: 6px 20px;
+    color: var(--text-dim);
+    font-size: 12px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    user-select: none;
+  }
+
+  .tab:hover { color: var(--text); }
+
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab-content {
+    display: none;
+    flex: 1;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .tab-content.active {
+    display: flex;
+  }
+
+  /* Instruments tab placeholder */
+  .instruments-placeholder {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+
   /* Info bar */
   .info-bar {
     display: flex;
@@ -111,28 +159,84 @@
     margin-left: 4px;
   }
 
-  .order-list {
+  /* Order list panel (FT2 style) */
+  .order-panel {
     display: flex;
-    gap: 2px;
-    align-items: center;
-    overflow-x: auto;
-    max-width: 60%;
+    flex-direction: column;
+    width: 100px;
+    min-width: 100px;
+    background: var(--bg-dark);
+    border-right: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .order-panel-header {
+    display: flex;
+    padding: 4px 4px 2px;
+    font-size: 10px;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .order-panel-header span {
+    flex: 1;
+    text-align: center;
+  }
+
+  .order-panel-list {
+    flex: 1;
+    overflow-y: auto;
   }
 
   .order-entry {
+    display: flex;
     padding: 1px 4px;
-    background: var(--bg-light);
-    border: 1px solid transparent;
     font-size: 11px;
     color: var(--text-dim);
-    min-width: 22px;
+    cursor: pointer;
+    border-bottom: 1px solid transparent;
+  }
+
+  .order-entry:hover {
+    background: var(--bg-light);
+  }
+
+  .order-entry .order-idx {
+    width: 24px;
+    text-align: right;
+    padding-right: 6px;
+    color: var(--text-dim);
+  }
+
+  .order-entry .order-pat {
+    flex: 1;
     text-align: center;
+    color: var(--text);
   }
 
   .order-entry.current {
     background: var(--highlight);
     color: var(--text-bright);
-    border-color: var(--highlight-bright);
+  }
+
+  .order-entry.current .order-idx,
+  .order-entry.current .order-pat {
+    color: var(--text-bright);
+  }
+
+  .order-buttons {
+    display: flex;
+    gap: 2px;
+    padding: 4px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .order-buttons button {
+    flex: 1;
+    min-width: 20px;
+    padding: 3px 0;
+    font-size: 11px;
   }
 
   /* Pattern view */
@@ -184,6 +288,10 @@
     background: var(--row-current) !important;
   }
 
+  .pattern-row.current.editing {
+    background: var(--row-edit) !important;
+  }
+
   .pattern-row .cell {
     border-right: 1px solid var(--border);
     padding: 0 3px;
@@ -201,13 +309,30 @@
   .cell-chan {
     width: 76px;
     min-width: 76px;
+    display: flex;
+    gap: 0;
   }
+
+  .cell-note, .cell-effect {
+    padding: 0 1px;
+  }
+
+  .cell-note { flex: 0 0 30px; }
+  .cell-effect { flex: 0 0 20px; }
 
   .note { color: var(--note-color); }
   .note-off { color: var(--keyoff-color); }
   .note-inst { color: var(--inst-color); }
   .effect { color: var(--effect-color); }
   .empty { color: var(--text-dim); }
+
+  /* Cursor */
+  .cursor {
+    background: var(--highlight-bright);
+    color: #fff !important;
+    outline: 1px solid var(--accent);
+  }
+
 
   /* Channel levels */
   .levels-bar {
@@ -327,17 +452,9 @@
   </div>
 </div>
 
-<div class="info-bar" id="infoBar" style="display:none;">
-  <div>
-    <label>Pattern:</label><span class="value" id="infoPattern">00</span>
-  </div>
-  <div>
-    <label>Speed:</label><span class="value" id="infoSpeed">6</span>
-  </div>
-  <div>
-    <label>Order:</label>
-    <div class="order-list" id="orderList"></div>
-  </div>
+<div class="tab-bar" id="tabBar" style="display:none;">
+  <div class="tab active" data-tab="tracker">Tracker</div>
+  <div class="tab" data-tab="instruments">Instruments</div>
 </div>
 
 <div class="welcome" id="welcomeScreen">
@@ -346,17 +463,50 @@
   <p style="margin-top: 8px; font-size: 11px;">HSC files are AdLib tracker music used in DOS games and demoscene.</p>
 </div>
 
-<div class="pattern-container" id="patternContainer" style="display:none;">
-  <div class="pattern-header" id="patternHeader"></div>
-  <div class="pattern-rows" id="patternRows"></div>
+<!-- Tracker tab -->
+<div class="tab-content active" id="tabTracker" style="display:none;">
+  <div class="info-bar" id="infoBar">
+    <div>
+      <label>Pattern:</label><span class="value" id="infoPattern">00</span>
+    </div>
+    <div>
+      <label>Speed:</label><span class="value" id="infoSpeed">6</span>
+    </div>
+  </div>
+
+  <div style="display:flex; flex:1; overflow:hidden;">
+    <div class="order-panel" id="orderPanel">
+      <div class="order-panel-header"><span>#</span><span>Pat</span></div>
+      <div class="order-panel-list" id="orderList"></div>
+      <div class="order-buttons">
+        <button id="btnOrderInsert" title="Insert pattern after current row">Ins</button>
+        <button id="btnOrderDelete" title="Delete current row">Del</button>
+        <button id="btnOrderPlus" title="Increase pattern number">+</button>
+        <button id="btnOrderMinus" title="Decrease pattern number">&minus;</button>
+      </div>
+    </div>
+
+    <div class="pattern-container" id="patternContainer">
+      <div class="pattern-header" id="patternHeader"></div>
+      <div class="pattern-rows" id="patternRows"></div>
+    </div>
+  </div>
+
+  <div class="levels-bar" id="levelsBar"></div>
+
+  <div class="instr-bar" id="instrBar">
+    <span>Octave: <input type="number" id="infoOctave" value="4" min="0" max="7" style="width:36px; background:var(--bg-light); color:var(--accent); border:1px solid var(--border); font-family:inherit; font-size:11px; text-align:center; padding:1px 2px;"></span>
+    <span>Instrument: <input type="number" id="infoInstrument" value="0" min="0" max="127" style="width:42px; background:var(--bg-light); color:var(--accent); border:1px solid var(--border); font-family:inherit; font-size:11px; text-align:center; padding:1px 2px;"></span>
+    <span>Step: <input type="number" id="infoStep" value="1" min="0" max="16" style="width:36px; background:var(--bg-light); color:var(--accent); border:1px solid var(--border); font-family:inherit; font-size:11px; text-align:center; padding:1px 2px;"></span>
+    <span style="margin-left:auto;">Instruments: <span class="inst-name" id="instrCount">0</span></span>
+    <span>Patterns: <span class="inst-name" id="patternCount">0</span></span>
+    <span>Orders: <span class="inst-name" id="orderCount">0</span></span>
+  </div>
 </div>
 
-<div class="levels-bar" id="levelsBar" style="display:none;"></div>
-
-<div class="instr-bar" id="instrBar" style="display:none;">
-  <span>Instruments: <span class="inst-name" id="instrCount">0</span></span>
-  <span>Patterns: <span class="inst-name" id="patternCount">0</span></span>
-  <span>Orders: <span class="inst-name" id="orderCount">0</span></span>
+<!-- Instruments tab -->
+<div class="tab-content" id="tabInstruments" style="display:none;">
+  <div class="instruments-placeholder">Instrument editor coming soon</div>
 </div>
 
 <div class="drop-overlay" id="dropOverlay">DROP HSC FILE</div>
@@ -379,6 +529,15 @@
   let isPlaying = false;
   let channelLevels = new Float32Array(9);
 
+  // ---- Edit mode & cursor ----
+  let editMode = false;
+  let cursorRow = 0;
+  let cursorCh = 0;
+  let cursorCol = 0;  // 0 = note, 1 = effect
+  let editStep = 1;
+  let currentOctave = 4;
+  let currentInstrument = 0;
+
   // ---- DOM refs ----
   const btnOpen = document.getElementById('btnOpen');
   const btnPlay = document.getElementById('btnPlay');
@@ -386,14 +545,48 @@
   const fileInput = document.getElementById('fileInput');
   const fileInfo = document.getElementById('fileInfo');
   const welcomeScreen = document.getElementById('welcomeScreen');
+  const tabBar = document.getElementById('tabBar');
+  const tabTracker = document.getElementById('tabTracker');
+  const tabInstruments = document.getElementById('tabInstruments');
   const patternContainer = document.getElementById('patternContainer');
   const patternHeader = document.getElementById('patternHeader');
   const patternRows = document.getElementById('patternRows');
-  const infoBar = document.getElementById('infoBar');
   const levelsBar = document.getElementById('levelsBar');
   const instrBar = document.getElementById('instrBar');
   const dropOverlay = document.getElementById('dropOverlay');
   const orderListEl = document.getElementById('orderList');
+  const infoOctaveEl = document.getElementById('infoOctave');
+  const infoInstrumentEl = document.getElementById('infoInstrument');
+  const infoStepEl = document.getElementById('infoStep');
+
+  // Number inputs: sync with state, prevent keys from leaking to editor
+  [infoOctaveEl, infoInstrumentEl, infoStepEl].forEach(el => {
+    el.addEventListener('keydown', (e) => e.stopPropagation());
+    el.addEventListener('focus', () => el.select());
+  });
+  infoOctaveEl.addEventListener('input', () => {
+    currentOctave = Math.max(0, Math.min(7, parseInt(infoOctaveEl.value) || 0));
+  });
+  infoInstrumentEl.addEventListener('input', () => {
+    currentInstrument = Math.max(0, Math.min(127, parseInt(infoInstrumentEl.value) || 0));
+  });
+  infoStepEl.addEventListener('input', () => {
+    editStep = Math.max(0, Math.min(16, parseInt(infoStepEl.value) || 0));
+  });
+
+  // ---- Tab switching ----
+  const tabs = document.querySelectorAll('.tab');
+  const tabContents = { tracker: tabTracker, instruments: tabInstruments };
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      Object.values(tabContents).forEach(tc => tc.classList.remove('active'));
+      tabContents[target].classList.add('active');
+    });
+  });
 
   // ---- File loading ----
   btnOpen.addEventListener('click', () => fileInput.click());
@@ -466,11 +659,10 @@
 
     // Update UI
     welcomeScreen.style.display = 'none';
-    patternContainer.style.display = 'flex';
-    patternContainer.style.flexDirection = 'column';
-    infoBar.style.display = 'flex';
-    levelsBar.style.display = 'flex';
-    instrBar.style.display = 'flex';
+    tabBar.style.display = 'flex';
+    tabTracker.style.display = '';
+    tabTracker.classList.add('active');
+    tabInstruments.style.display = '';
 
     btnPlay.disabled = false;
     btnStop.disabled = true;
@@ -483,12 +675,18 @@
 
     // Build UI
     buildPatternHeader();
+    buildPatternGrid();
     buildLevelsBar();
     buildOrderList();
     showPattern(hscData.orderList[0], 0);
   }
 
   // ---- Pattern display ----
+  // Stable DOM grid: cells[row][ch] = { note: span, effect: span }
+  let cells = [];
+  let rowEls = [];
+  let currentPatIdx = -1;
+
   function buildPatternHeader() {
     let html = '<div class="col col-row">#</div>';
     for (let ch = 0; ch < 9; ch++) {
@@ -497,92 +695,215 @@
     patternHeader.innerHTML = html;
   }
 
-  function showPattern(patIdx, highlightRow) {
-    if (!hscData || patIdx < 0 || patIdx >= hscData.patternCount) {
-      patternRows.innerHTML = '';
-      return;
-    }
-
-    const pattern = hscData.patterns[patIdx];
-    let html = '';
+  function buildPatternGrid() {
+    patternRows.innerHTML = '';
+    cells = [];
+    rowEls = [];
 
     for (let row = 0; row < 64; row++) {
-      const isCurrent = row === highlightRow;
-      html += `<div class="pattern-row${isCurrent ? ' current' : ''}" id="row${row}">`;
-      html += `<div class="cell cell-row">${String(row).padStart(2, '0')}</div>`;
+      const rowEl = document.createElement('div');
+      rowEl.className = 'pattern-row';
+      rowEl.dataset.row = row;
+
+      const rowNumEl = document.createElement('div');
+      rowNumEl.className = 'cell cell-row';
+      rowNumEl.textContent = String(row).padStart(2, '0');
+      rowEl.appendChild(rowNumEl);
+
+      const rowCells = [];
+      for (let ch = 0; ch < 9; ch++) {
+        const chanEl = document.createElement('div');
+        chanEl.className = 'cell cell-chan';
+
+        const noteSpan = document.createElement('span');
+        noteSpan.className = 'cell-note empty';
+        noteSpan.dataset.row = row;
+        noteSpan.dataset.ch = ch;
+        noteSpan.dataset.col = 'note';
+        noteSpan.textContent = '---';
+
+        const effSpan = document.createElement('span');
+        effSpan.className = 'cell-effect empty';
+        effSpan.dataset.row = row;
+        effSpan.dataset.ch = ch;
+        effSpan.dataset.col = 'effect';
+        effSpan.textContent = '...';
+
+        chanEl.appendChild(noteSpan);
+        chanEl.appendChild(effSpan);
+        rowEl.appendChild(chanEl);
+        rowCells.push({ note: noteSpan, effect: effSpan });
+      }
+
+      cells.push(rowCells);
+      rowEls.push(rowEl);
+      patternRows.appendChild(rowEl);
+    }
+  }
+
+  function showPattern(patIdx, highlightRow) {
+    if (!hscData || patIdx < 0 || patIdx >= hscData.patternCount) return;
+
+    const pattern = hscData.patterns[patIdx];
+    currentPatIdx = patIdx;
+
+    for (let row = 0; row < 64; row++) {
+      rowEls[row].classList.remove('current', 'editing');
+      if (row === highlightRow) rowEls[row].classList.add('current');
 
       for (let ch = 0; ch < 9; ch++) {
         const cell = pattern[row][ch];
-        html += `<div class="cell cell-chan">`;
-        html += formatCellHTML(cell.note, cell.effect);
-        html += '</div>';
+        updateCell(row, ch, cell.note, cell.effect);
       }
-      html += '</div>';
     }
-
-    patternRows.innerHTML = html;
 
     if (highlightRow >= 0) scrollToRow(highlightRow);
   }
 
-  function formatCellHTML(noteByte, effectByte) {
-    let noteStr, noteClass;
+  function updateCell(row, ch, noteByte, effectByte) {
+    const c = cells[row][ch];
 
+    // Note column
     if (noteByte === 0) {
-      noteStr = '---';
-      noteClass = 'empty';
+      c.note.textContent = '---';
+      c.note.className = 'cell-note empty';
     } else if (noteByte & 0x80) {
-      noteStr = 'I' + String(effectByte).padStart(2, '0');
-      noteClass = 'note-inst';
-      return `<span class="${noteClass}">${noteStr}</span> <span class="empty">...</span>`;
+      c.note.textContent = 'I' + String(effectByte).padStart(2, '0');
+      c.note.className = 'cell-note note-inst';
+      c.effect.textContent = '...';
+      c.effect.className = 'cell-effect empty';
+      return;
     } else {
       const noteVal = noteByte - 1;
       if (noteVal === 0x7E) {
-        noteStr = '^^^';
-        noteClass = 'note-off';
+        c.note.textContent = '^^^';
+        c.note.className = 'cell-note note-off';
       } else {
-        noteStr = NOTE_NAMES[noteVal % 12] + Math.floor(noteVal / 12);
-        noteClass = 'note';
+        c.note.textContent = NOTE_NAMES[noteVal % 12] + Math.floor(noteVal / 12);
+        c.note.className = 'cell-note note';
       }
     }
 
-    let effStr;
+    // Effect column
     if (effectByte === 0) {
-      effStr = '<span class="empty">...</span>';
+      c.effect.textContent = '...';
+      c.effect.className = 'cell-effect empty';
     } else {
       const hi = (effectByte >> 4) & 0x0F;
       const lo = effectByte & 0x0F;
-      effStr = `<span class="effect">${hi.toString(16).toUpperCase()}${lo.toString(16).toUpperCase()}</span>`;
+      c.effect.textContent = hi.toString(16).toUpperCase() + lo.toString(16).toUpperCase();
+      c.effect.className = 'cell-effect effect';
     }
-
-    return `<span class="${noteClass}">${noteStr}</span> ${effStr}`;
   }
 
   function scrollToRow(row) {
-    const rowEl = document.getElementById('row' + row);
-    if (rowEl) rowEl.scrollIntoView({ block: 'center', behavior: 'auto' });
+    if (rowEls[row]) rowEls[row].scrollIntoView({ block: 'center', behavior: 'auto' });
   }
 
-  // ---- Order list ----
+  // ---- Order list (FT2 style) ----
+  let orderSelectedIdx = 0;
+
+  function getOrderLength() {
+    const idx = hscData.orderList.indexOf(0xFF);
+    return idx >= 0 ? idx : hscData.orderList.length;
+  }
+
   function buildOrderList() {
-    let html = '';
-    for (let i = 0; i < hscData.orderList.length; i++) {
+    orderListEl.innerHTML = '';
+    const len = getOrderLength();
+    for (let i = 0; i < len; i++) {
       const entry = hscData.orderList[i];
-      if (entry === 0xFF) break;
-      html += `<div class="order-entry" id="order${i}">${String(entry).padStart(2, '0')}</div>`;
+      const row = document.createElement('div');
+      row.className = 'order-entry';
+      row.id = 'order' + i;
+      row.innerHTML = `<span class="order-idx">${String(i).padStart(2, '0')}</span><span class="order-pat">${String(entry).padStart(2, '0')}</span>`;
+      row.addEventListener('click', () => selectOrderRow(i));
+      orderListEl.appendChild(row);
     }
-    orderListEl.innerHTML = html;
+    selectOrderRow(Math.min(orderSelectedIdx, len - 1));
+    document.getElementById('orderCount').textContent = len;
+  }
+
+  function selectOrderRow(idx) {
+    const entries = orderListEl.querySelectorAll('.order-entry');
+    entries.forEach(el => el.classList.remove('current'));
+    orderSelectedIdx = idx;
+    const el = document.getElementById('order' + idx);
+    if (el) {
+      el.classList.add('current');
+      el.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+    }
+    // Show the selected pattern
+    if (!isPlaying) {
+      const patIdx = hscData.orderList[idx];
+      if (patIdx !== undefined && patIdx < hscData.patternCount) {
+        showPattern(patIdx, editMode ? cursorRow : 0);
+        if (editMode) renderCursor();
+      }
+    }
   }
 
   function highlightOrder(pos) {
-    const entries = orderListEl.querySelectorAll('.order-entry');
-    entries.forEach(el => el.classList.remove('current'));
-    const el = document.getElementById('order' + pos);
-    if (el) {
-      el.classList.add('current');
-      el.scrollIntoView({ inline: 'center', behavior: 'auto' });
+    selectOrderRow(pos);
+  }
+
+  // Order list editing operations
+  function orderInsert() {
+    const len = getOrderLength();
+    if (len >= 50) return; // HSC max
+    const currentPat = hscData.orderList[orderSelectedIdx] || 0;
+    // Shift entries down
+    for (let i = len; i > orderSelectedIdx + 1; i--) {
+      hscData.orderList[i] = hscData.orderList[i - 1];
+    }
+    hscData.orderList[orderSelectedIdx + 1] = currentPat;
+    // Ensure terminator
+    hscData.orderList[len + 1] = 0xFF;
+    syncOrderToCompact();
+    buildOrderList();
+    selectOrderRow(orderSelectedIdx + 1);
+  }
+
+  function orderDelete() {
+    const len = getOrderLength();
+    if (len <= 1) return; // keep at least one entry
+    // Shift entries up
+    for (let i = orderSelectedIdx; i < len - 1; i++) {
+      hscData.orderList[i] = hscData.orderList[i + 1];
+    }
+    hscData.orderList[len - 1] = 0xFF;
+    syncOrderToCompact();
+    buildOrderList();
+    selectOrderRow(Math.min(orderSelectedIdx, getOrderLength() - 1));
+  }
+
+  function orderChangePat(delta) {
+    const len = getOrderLength();
+    if (orderSelectedIdx >= len) return;
+    let val = hscData.orderList[orderSelectedIdx] + delta;
+    val = Math.max(0, Math.min(hscData.patternCount - 1, val));
+    hscData.orderList[orderSelectedIdx] = val;
+    syncOrderToCompact();
+    // Update display
+    const el = document.getElementById('order' + orderSelectedIdx);
+    if (el) el.querySelector('.order-pat').textContent = String(val).padStart(2, '0');
+    // Show the new pattern
+    if (val < hscData.patternCount) {
+      showPattern(val, editMode ? cursorRow : 0);
+      if (editMode) renderCursor();
     }
   }
+
+  function syncOrderToCompact() {
+    if (!hscCompact) return;
+    hscCompact.orderList = hscData.orderList.slice();
+  }
+
+  // Button handlers
+  document.getElementById('btnOrderInsert').addEventListener('click', orderInsert);
+  document.getElementById('btnOrderDelete').addEventListener('click', orderDelete);
+  document.getElementById('btnOrderPlus').addEventListener('click', () => orderChangePat(1));
+  document.getElementById('btnOrderMinus').addEventListener('click', () => orderChangePat(-1));
 
   // ---- Channel levels ----
   function buildLevelsBar() {
@@ -612,6 +933,7 @@
 
   // ---- State update from worklet ----
   let lastPatIdx = -1;
+  let lastHighlightRow = -1;
 
   function onStateUpdate(state) {
     const { songPos, patRow, patIdx, speed } = state;
@@ -624,14 +946,14 @@
     if (patIdx !== lastPatIdx) {
       showPattern(patIdx, patRow);
       lastPatIdx = patIdx;
-    } else {
-      const rows = patternRows.querySelectorAll('.pattern-row');
-      rows.forEach(r => r.classList.remove('current'));
-      const rowEl = document.getElementById('row' + patRow);
-      if (rowEl) {
-        rowEl.classList.add('current');
-        scrollToRow(patRow);
+      lastHighlightRow = patRow;
+    } else if (patRow !== lastHighlightRow) {
+      if (lastHighlightRow >= 0 && lastHighlightRow < 64) {
+        rowEls[lastHighlightRow].classList.remove('current');
       }
+      rowEls[patRow].classList.add('current');
+      scrollToRow(patRow);
+      lastHighlightRow = patRow;
     }
   }
 
@@ -662,6 +984,14 @@
 
   // ---- Playback control ----
   async function startPlayback() {
+    await doStartPlayback('play');
+  }
+
+  async function startPlaybackFrom(songPos, pattPos) {
+    await doStartPlayback('playFrom', songPos, pattPos);
+  }
+
+  async function doStartPlayback(type, songPos, pattPos) {
     if (!hscCompact) return;
 
     await initAudio();
@@ -670,12 +1000,21 @@
     }
 
     lastPatIdx = -1;
+    lastHighlightRow = -1;
 
     // Send HSC data to worklet and start playback
     workletNode.port.postMessage({ type: 'loadHSC', hsc: hscCompact });
-    workletNode.port.postMessage({ type: 'play' });
+    if (type === 'playFrom') {
+      workletNode.port.postMessage({ type: 'playFrom', songPos, pattPos });
+    } else {
+      workletNode.port.postMessage({ type: 'play' });
+    }
 
     isPlaying = true;
+    if (editMode) {
+      editMode = false;
+      clearCursor();
+    }
     btnPlay.disabled = true;
     btnStop.disabled = false;
   }
@@ -689,17 +1028,306 @@
     btnPlay.disabled = false;
     btnStop.disabled = true;
     updateLevels(new Float32Array(9));
+    // Sync cursor to last playback position
+    if (lastHighlightRow >= 0) cursorRow = lastHighlightRow;
   }
 
   btnPlay.addEventListener('click', startPlayback);
   btnStop.addEventListener('click', stopPlayback);
 
-  // Keyboard shortcut: Space to toggle play/stop
+  // ---- Edit mode & cursor ----
+  function toggleEditMode() {
+    if (isPlaying) return;
+    editMode = !editMode;
+    if (editMode) {
+      renderCursor();
+    } else {
+      clearCursor();
+      // Keep .current on the row but remove .editing
+      const el = patternRows.querySelector('.editing');
+      if (el) el.classList.remove('editing');
+    }
+  }
+
+  function clearCursor() {
+    const prevCursor = patternRows.querySelector('.cursor');
+    if (prevCursor) prevCursor.classList.remove('cursor');
+  }
+
+  function setCurrentRow(row) {
+    const prev = patternRows.querySelector('.current');
+    if (prev) prev.classList.remove('current', 'editing');
+    rowEls[row].classList.add('current');
+    if (editMode) rowEls[row].classList.add('editing');
+    scrollToRow(row);
+  }
+
+  function renderCursor() {
+    clearCursor();
+    if (!editMode || cells.length === 0) return;
+    // Highlight cell
+    const c = cells[cursorRow][cursorCh];
+    const el = cursorCol === 0 ? c.note : c.effect;
+    el.classList.add('cursor');
+    // Move current row to cursor
+    setCurrentRow(cursorRow);
+  }
+
+  function moveCursor(dRow, dCol) {
+    // Total columns: 9 channels × 2 (note + effect) = 18
+    let flatCol = cursorCh * 2 + cursorCol + dCol;
+    let newRow = cursorRow + dRow;
+
+    // Wrap columns
+    if (flatCol < 0) flatCol = 0;
+    if (flatCol > 17) flatCol = 17;
+
+    cursorCh = Math.floor(flatCol / 2);
+    cursorCol = flatCol % 2;
+
+    // Clamp rows
+    if (newRow < 0) newRow = 0;
+    if (newRow > 63) newRow = 63;
+    cursorRow = newRow;
+
+    renderCursor();
+  }
+
+  function jumpChannel(delta) {
+    let newCh = cursorCh + delta;
+    if (newCh < 0) newCh = 0;
+    if (newCh > 8) newCh = 8;
+    cursorCh = newCh;
+    cursorCol = 0;
+    renderCursor();
+  }
+
+  // ---- Pattern data editing ----
+  // Piano keyboard → semitone offset (within one octave)
+  const KEY_TO_NOTE = {
+    // Lower octave: Z S X D C V G B H N J M
+    'KeyZ': 0, 'KeyS': 1, 'KeyX': 2, 'KeyD': 3, 'KeyC': 4, 'KeyV': 5,
+    'KeyG': 6, 'KeyB': 7, 'KeyH': 8, 'KeyN': 9, 'KeyJ': 10, 'KeyM': 11,
+    // Upper octave: Q 2 W 3 E R 5 T 6 Y 7 U
+    'KeyQ': 12, 'Digit2': 13, 'KeyW': 14, 'Digit3': 15, 'KeyE': 16, 'KeyR': 17,
+    'Digit5': 18, 'KeyT': 19, 'Digit6': 20, 'KeyY': 21, 'Digit7': 22, 'KeyU': 23,
+  };
+
+  function writeNoteToPattern(row, ch, noteByte, effectByte) {
+    const pat = hscData.patterns[currentPatIdx];
+    pat[row][ch].note = noteByte;
+    pat[row][ch].effect = effectByte;
+    updateCell(row, ch, noteByte, effectByte);
+    // Update compact data too
+    if (hscCompact && currentPatIdx < hscCompact.patterns.length) {
+      const idx = (row * 9 + ch) * 2;
+      hscCompact.patterns[currentPatIdx][idx] = noteByte;
+      hscCompact.patterns[currentPatIdx][idx + 1] = effectByte;
+    }
+  }
+
+  function enterNote(semitone) {
+    // semitone is 0-23 (two octaves from piano keys)
+    // Map to HSC note: (octave * 12 + note) + 1
+    const oct = currentOctave + Math.floor(semitone / 12);
+    const note = semitone % 12;
+    if (oct < 0 || oct > 7) return;
+    const noteByte = (oct * 12 + note) + 1;
+    const pat = hscData.patterns[currentPatIdx];
+    const effectByte = pat[cursorRow][cursorCh].effect;
+    writeNoteToPattern(cursorRow, cursorCh, noteByte, effectByte);
+    advanceCursor();
+  }
+
+  function enterKeyOff() {
+    const effectByte = hscData.patterns[currentPatIdx][cursorRow][cursorCh].effect;
+    writeNoteToPattern(cursorRow, cursorCh, 0x7F, effectByte);
+    advanceCursor();
+  }
+
+  function enterInstrumentSet() {
+    writeNoteToPattern(cursorRow, cursorCh, 0x80 | currentInstrument, currentInstrument);
+    advanceCursor();
+  }
+
+  function deleteCell() {
+    writeNoteToPattern(cursorRow, cursorCh, 0, 0);
+  }
+
+  function deleteCellAndMoveUp() {
+    writeNoteToPattern(cursorRow, cursorCh, 0, 0);
+    moveCursor(-1, 0);
+  }
+
+  function enterEffectNibble(hexVal) {
+    const pat = hscData.patterns[currentPatIdx];
+    const cell = pat[cursorRow][cursorCh];
+    // Shift existing low nibble to high, put new value in low
+    const newEffect = ((cell.effect & 0x0F) << 4) | hexVal;
+    writeNoteToPattern(cursorRow, cursorCh, cell.note, newEffect);
+    renderCursor();
+  }
+
+  function advanceCursor() {
+    cursorRow = Math.min(63, cursorRow + editStep);
+    renderCursor();
+  }
+
+  function updateEditInfo() {
+    infoOctaveEl.value = currentOctave;
+    infoInstrumentEl.value = currentInstrument;
+    infoStepEl.value = editStep;
+  }
+
+  // ---- Keyboard handling ----
   document.addEventListener('keydown', (e) => {
-    if (e.code === 'Space' && hscData) {
+    if (!hscData) return;
+
+    // Escape: stop playback
+    if (e.code === 'Escape') {
       e.preventDefault();
       if (isPlaying) stopPlayback();
-      else startPlayback();
+      return;
+    }
+
+    // Enter: play/pause from beginning of current pattern
+    // Shift+Enter or Alt+Enter: play/pause from current position
+    if (e.code === 'Enter') {
+      e.preventDefault();
+      if (isPlaying) {
+        stopPlayback();
+      } else if (e.shiftKey || e.altKey) {
+        // Play from current position
+        startPlaybackFrom(orderSelectedIdx, cursorRow);
+      } else {
+        // Play from beginning of current pattern
+        startPlaybackFrom(orderSelectedIdx, 0);
+      }
+      return;
+    }
+
+    // Space: toggle edit mode when stopped
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (isPlaying) {
+        stopPlayback();
+      } else {
+        toggleEditMode();
+      }
+      return;
+    }
+
+    // The rest only applies in edit mode
+    if (!editMode) return;
+
+    // +/- : shift current note octave up/down
+    // */  : shift current note semitone up/down
+    if (e.key === '+' || e.key === '-' || e.key === '*' || e.key === '/') {
+      e.preventDefault();
+      const pat = hscData.patterns[currentPatIdx];
+      const cell = pat[cursorRow][cursorCh];
+      const noteByte = cell.note;
+      // Only modify actual notes (not empty, instrument-set, or key-off)
+      if (noteByte === 0 || (noteByte & 0x80) || noteByte === 0x7F) return;
+      let noteVal = noteByte - 1;
+      if (e.key === '+') noteVal += 12;       // octave up
+      else if (e.key === '-') noteVal -= 12;  // octave down
+      else if (e.key === '*') noteVal += 1;   // semitone up
+      else if (e.key === '/') noteVal -= 1;   // semitone down
+      if (noteVal < 0 || noteVal > 95) return; // clamp to valid range (8 octaves × 12)
+      writeNoteToPattern(cursorRow, cursorCh, noteVal + 1, cell.effect);
+      renderCursor();
+      return;
+    }
+
+    // Navigation
+    switch (e.code) {
+      case 'ArrowUp':
+        e.preventDefault();
+        moveCursor(-1, 0);
+        return;
+      case 'ArrowDown':
+        e.preventDefault();
+        moveCursor(1, 0);
+        return;
+      case 'ArrowLeft':
+        e.preventDefault();
+        moveCursor(0, -1);
+        return;
+      case 'ArrowRight':
+        e.preventDefault();
+        moveCursor(0, 1);
+        return;
+      case 'Tab':
+        e.preventDefault();
+        jumpChannel(e.shiftKey ? -1 : 1);
+        return;
+      case 'PageUp':
+        e.preventDefault();
+        moveCursor(-16, 0);
+        return;
+      case 'PageDown':
+        e.preventDefault();
+        moveCursor(16, 0);
+        return;
+      case 'Home':
+        e.preventDefault();
+        cursorRow = 0;
+        renderCursor();
+        return;
+      case 'End':
+        e.preventDefault();
+        cursorRow = 63;
+        renderCursor();
+        return;
+    }
+
+    // Key-off (backtick)
+    if (e.code === 'Backquote') {
+      e.preventDefault();
+      enterKeyOff();
+      return;
+    }
+
+    // Insert instrument-set
+    if (e.code === 'Insert') {
+      e.preventDefault();
+      enterInstrumentSet();
+      return;
+    }
+
+    // Delete / Backspace
+    if (e.code === 'Delete') {
+      e.preventDefault();
+      deleteCell();
+      return;
+    }
+    if (e.code === 'Backspace') {
+      e.preventDefault();
+      deleteCellAndMoveUp();
+      return;
+    }
+
+    // Effect column: hex entry
+    if (cursorCol === 1) {
+      const hexMap = {
+        'Digit0': 0, 'Digit1': 1, 'Digit2': 2, 'Digit3': 3,
+        'Digit4': 4, 'Digit5': 5, 'Digit6': 6, 'Digit7': 7,
+        'Digit8': 8, 'Digit9': 9,
+        'KeyA': 10, 'KeyB': 11, 'KeyC': 12, 'KeyD': 13, 'KeyE': 14, 'KeyF': 15,
+      };
+      if (e.code in hexMap) {
+        e.preventDefault();
+        enterEffectNibble(hexMap[e.code]);
+        return;
+      }
+    }
+
+    // Note column: piano keyboard
+    if (cursorCol === 0 && e.code in KEY_TO_NOTE) {
+      e.preventDefault();
+      enterNote(KEY_TO_NOTE[e.code]);
+      return;
     }
   });
 })();

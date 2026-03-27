@@ -27,6 +27,9 @@ class HSCWorkletProcessor extends AudioWorkletProcessor {
       } else if (msg.type === 'play') {
         this.seq.start();
         this.tickAccum = 0;
+      } else if (msg.type === 'playFrom') {
+        this.seq.startFrom(msg.songPos, msg.pattPos);
+        this.tickAccum = 0;
       } else if (msg.type === 'stop') {
         this.seq.stop();
       }
