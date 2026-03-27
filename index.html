@@ -334,45 +334,15 @@
   }
 
 
-  /* Channel levels */
-  .levels-bar {
-    display: flex;
-    padding: 6px 16px;
-    background: var(--bg-dark);
-    border-top: 1px solid var(--border);
-    gap: 0;
-    flex-shrink: 0;
-    align-items: flex-end;
-    height: 40px;
+  /* Channel header activity blink */
+  .col-chan {
+    transition: background-color 0.3s ease-out, color 0.3s ease-out;
   }
 
-  .level-col {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-  }
-
-  .level-col .label {
-    font-size: 9px;
-    color: var(--text-dim);
-  }
-
-  .level-bar-outer {
-    width: 76px;
-    height: 8px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    overflow: hidden;
-  }
-
-  .level-col:first-child .level-bar-outer { margin-left: 30px; }
-
-  .level-bar-inner {
-    height: 100%;
-    background: var(--accent);
-    width: 0%;
-    transition: width 50ms linear;
+  .col-chan.active {
+    background-color: var(--accent-dim);
+    color: var(--accent);
+    transition: none;
   }
 
   /* Drop zone */
@@ -492,8 +462,6 @@
     </div>
   </div>
 
-  <div class="levels-bar" id="levelsBar"></div>
-
   <div class="instr-bar" id="instrBar">
     <span>Octave: <input type="number" id="infoOctave" value="4" min="0" max="7" style="width:36px; background:var(--bg-light); color:var(--accent); border:1px solid var(--border); font-family:inherit; font-size:11px; text-align:center; padding:1px 2px;"></span>
     <span>Instrument: <input type="number" id="infoInstrument" value="0" min="0" max="127" style="width:42px; background:var(--bg-light); color:var(--accent); border:1px solid var(--border); font-family:inherit; font-size:11px; text-align:center; padding:1px 2px;"></span>
@@ -551,7 +519,6 @@
   const patternContainer = document.getElementById('patternContainer');
   const patternHeader = document.getElementById('patternHeader');
   const patternRows = document.getElementById('patternRows');
-  const levelsBar = document.getElementById('levelsBar');
   const instrBar = document.getElementById('instrBar');
   const dropOverlay = document.getElementById('dropOverlay');
   const orderListEl = document.getElementById('orderList');
@@ -682,8 +649,8 @@
 
     // Build UI
     buildPatternHeader();
+    buildChannelHeaders();
     buildPatternGrid();
-    buildLevelsBar();
     buildOrderList();
     showPattern(hscData.orderList[0], 0);
   }
@@ -950,28 +917,17 @@
   }
 
   // ---- Channel levels ----
-  function buildLevelsBar() {
-    let html = '';
-    for (let ch = 0; ch < 9; ch++) {
-      html += `<div class="level-col">
-        <div class="level-bar-outer">
-          <div class="level-bar-inner" id="level${ch}"></div>
-        </div>
-      </div>`;
-    }
-    levelsBar.innerHTML = html;
+  // ---- Channel header activity ----
+  let chanHeaderEls = [];
+
+  function buildChannelHeaders() {
+    chanHeaderEls = patternHeader.querySelectorAll('.col-chan');
   }
 
   function updateLevels(levels) {
-    for (let ch = 0; ch < 9; ch++) {
-      const el = document.getElementById('level' + ch);
-      if (el) {
-        const pct = Math.min(100, (levels[ch] || 0) * 100);
-        el.style.width = pct + '%';
-        if (pct > 80) el.style.background = '#e06060';
-        else if (pct > 50) el.style.background = '#e0c040';
-        else el.style.background = '#40c060';
-      }
+    for (let ch = 0; ch < 9 && ch < chanHeaderEls.length; ch++) {
+      const active = (levels[ch] || 0) > 0.1;
+      chanHeaderEls[ch].classList.toggle('active', active);
     }
   }
 
