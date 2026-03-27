@@ -673,6 +673,13 @@
     const orderLen = hscData.orderList.indexOf(0xFF);
     document.getElementById('orderCount').textContent = orderLen >= 0 ? orderLen : hscData.orderList.length;
 
+    // Reset editor state
+    orderSelectedIdx = 0;
+    cursorRow = 0;
+    cursorCh = 0;
+    cursorCol = 0;
+    editMode = false;
+
     // Build UI
     buildPatternHeader();
     buildPatternGrid();
@@ -833,11 +840,12 @@
       el.classList.add('current');
       el.scrollIntoView({ block: 'nearest', behavior: 'auto' });
     }
-    // Show the selected pattern
+    // Show the selected pattern and update info
     if (!isPlaying) {
       const patIdx = hscData.orderList[idx];
       if (patIdx !== undefined && patIdx < hscData.patternCount) {
-        showPattern(patIdx, editMode ? cursorRow : 0);
+        document.getElementById('infoPattern').textContent = String(patIdx).padStart(2, '0');
+        showPattern(patIdx, cursorRow);
         if (editMode) renderCursor();
       }
     }
