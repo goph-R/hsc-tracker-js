@@ -1693,11 +1693,11 @@
           return;
         case 'ArrowLeft':
           e.preventDefault();
-          moveCursor(0, -1);
+          if (editMode) moveCursor(0, -1);
           return;
         case 'ArrowRight':
           e.preventDefault();
-          moveCursor(0, 1);
+          if (editMode) moveCursor(0, 1);
           return;
         case 'Tab':
           if (editMode) jumpChannel(e.shiftKey ? -1 : 1);
