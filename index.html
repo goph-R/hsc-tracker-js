@@ -633,11 +633,8 @@
   <h1><span>HSC</span> Tracker</h1>
   <div class="controls">
     <span class="file-info" id="fileInfo">No file loaded</span>
-    <button id="btnNew" title="New song">New</button>
-    <button id="btnOpen" title="Open HSC file">Open</button>
-    <button id="btnSave" disabled title="Save HSC file">Save</button>
-    <button id="btnPlay" disabled title="Play (Space)">&#9654; Play</button>
-    <button id="btnStop" disabled title="Stop (Space)">&#9632; Stop</button>
+    <button id="btnNewHeader" title="New song">New</button>
+    <button id="btnOpenHeader" title="Open HSC file">Open</button>
   </div>
 </div>
 
@@ -656,7 +653,12 @@
 <!-- Tracker tab -->
 <div class="tab-content active" id="tabTracker" style="display:none;">
   <div class="info-bar" id="infoBar">
-    <div>
+    <button id="btnNew" title="New song">New</button>
+    <button id="btnOpen" title="Open HSC file">Open</button>
+    <button id="btnSave" disabled title="Save HSC file (Ctrl+S)">Save</button>
+    <button id="btnPlay" disabled title="Play (Enter)">&#9654; Play</button>
+    <button id="btnStop" disabled title="Stop (Esc)">&#9632; Stop</button>
+    <div style="margin-left:8px;">
       <label>Pattern:</label><span class="value" id="infoPattern">00</span>
       <button id="btnPatNew" title="New empty pattern" style="margin-left:8px;padding:2px 6px;font-size:10px;">New</button>
       <button id="btnPatDup" title="Duplicate current pattern" style="padding:2px 6px;font-size:10px;">Dup</button>
@@ -697,6 +699,11 @@
 
 <!-- Instruments tab -->
 <div class="tab-content" id="tabInstruments" style="display:none;">
+  <div class="info-bar">
+    <button id="btnInstrLoad" title="Load instrument from .ins file">Load</button>
+    <button id="btnInstrSave" title="Save instrument to .ins file">Save</button>
+    <button id="btnInstrReset" title="Reset current instrument to defaults">Reset</button>
+  </div>
   <div class="instr-editor">
     <div class="instr-list-panel">
       <div class="instr-list-header">Instruments</div>
@@ -735,6 +742,7 @@
 <div class="drop-overlay" id="dropOverlay">DROP HSC FILE</div>
 
 <input type="file" id="fileInput" accept=".hsc,.HSC">
+<input type="file" id="instrFileInput" accept=".ins,.INS">
 
 <script src="js/hsc-parser.js"></script>
 <script>
@@ -855,15 +863,14 @@
   function confirmIfLoaded() {
     return !hscData || confirm('Discard current song?');
   }
-  document.getElementById('btnNew').addEventListener('click', () => {
-    if (confirmIfLoaded()) newSong();
-  });
-  btnOpen.addEventListener('click', () => {
-    if (confirmIfLoaded()) {
-      fileInput.value = '';
-      fileInput.click();
-    }
-  });
+  function doNew() { if (confirmIfLoaded()) newSong(); }
+  function doOpen() {
+    if (confirmIfLoaded()) { fileInput.value = ''; fileInput.click(); }
+  }
+  document.getElementById('btnNew').addEventListener('click', doNew);
+  document.getElementById('btnNewHeader').addEventListener('click', doNew);
+  btnOpen.addEventListener('click', doOpen);
+  document.getElementById('btnOpenHeader').addEventListener('click', doOpen);
   fileInput.addEventListener('change', (e) => {
     if (e.target.files.length > 0) loadFile(e.target.files[0]);
   });
@@ -1979,6 +1986,67 @@
     }
     loadInstrParams(selectedInstr);
   }
+
+  // ---- Instrument load/save/reset (INS format: 12 raw bytes) ----
+  const instrFileInput = document.getElementById('instrFileInput');
+
+  document.getElementById('btnInstrLoad').addEventListener('click', () => {
+    instrFileInput.value = '';
+    instrFileInput.click();
+  });
+
+  instrFileInput.addEventListener('change', (e) => {
+    if (e.target.files.length === 0) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = new Uint8Array(ev.target.result);
+        if (data.length < 12) throw new Error('File too small for INS format (need 12 bytes)');
+        const raw = hscData.instruments[selectedInstr].raw;
+        for (let j = 0; j < 12; j++) raw[j] = data[j];
+        // Apply the same bit corrections as the HSC parser
+        raw[2] ^= (raw[2] & 0x40) << 1;
+        raw[3] ^= (raw[3] & 0x40) << 1;
+        raw[11] >>= 4;
+        for (let j = 0; j < 12; j++) updateInstrByte(selectedInstr, j, raw[j]);
+        reloadPreviewData();
+        loadInstrParams(selectedInstr);
+      } catch (err) {
+        alert('Error loading instrument: ' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(e.target.files[0]);
+  });
+
+  document.getElementById('btnInstrSave').addEventListener('click', () => {
+    if (!hscData) return;
+    const raw = hscData.instruments[selectedInstr].raw;
+    const out = new Uint8Array(12);
+    for (let j = 0; j < 12; j++) out[j] = raw[j];
+    // Reverse bit corrections for file storage
+    out[2] ^= (out[2] & 0x40) << 1;
+    out[3] ^= (out[3] & 0x40) << 1;
+    out[11] = raw[11] << 4;
+    const blob = new Blob([out], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'instrument_' + String(selectedInstr).padStart(3, '0') + '.ins';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('btnInstrReset').addEventListener('click', () => {
+    if (!hscData) return;
+    if (!confirm('Reset instrument ' + selectedInstr + ' to defaults?')) return;
+    const raw = hscData.instruments[selectedInstr].raw;
+    for (let i = 0; i < 12; i++) {
+      raw[i] = 0;
+      updateInstrByte(selectedInstr, i, 0);
+    }
+    reloadPreviewData();
+    loadInstrParams(selectedInstr);
+  });
 
   // ---- Operator parameter controls ----
   function makeSlider(label, min, max, value, onChange) {
