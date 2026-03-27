@@ -292,6 +292,52 @@
     margin-bottom: 8px;
   }
 
+  /* Waveform selector */
+  .waveform-selector {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+
+  .waveform-selector .param-row label {
+    min-width: 70px;
+  }
+
+  .wave-btn {
+    width: 36px;
+    height: 24px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .wave-btn:hover { border-color: var(--text-dim); }
+
+  .wave-btn.active {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+
+  .wave-btn svg {
+    width: 28px;
+    height: 16px;
+  }
+
+  .wave-btn svg polyline, .wave-btn svg line {
+    stroke: var(--text-dim);
+    fill: none;
+    stroke-width: 1.5;
+  }
+
+  .wave-btn.active svg polyline, .wave-btn.active svg line {
+    stroke: var(--accent);
+  }
+
   /* Info bar */
   .info-bar {
     display: flex;
@@ -665,6 +711,12 @@
 <script>
 (function() {
   'use strict';
+
+  // Make buttons unfocusable (inputs stay focusable for typing values)
+  document.querySelectorAll('button').forEach(el => el.tabIndex = -1);
+  new MutationObserver(() => {
+    document.querySelectorAll('button:not([tabindex])').forEach(el => el.tabIndex = -1);
+  }).observe(document.body, { childList: true, subtree: true });
 
   // Note names for display
   const NOTE_NAMES = ['C-', 'C#', 'D-', 'D#', 'E-', 'F-', 'F#', 'G-', 'G#', 'A-', 'A#', 'B-'];
@@ -1970,11 +2022,39 @@
       updateInstrByte(instrIdx, bTL, raw[bTL]);
     }).row);
 
-    // Waveform
-    container.appendChild(makeSlider('Waveform', 0, 3, raw[bWav] & 0x3, v => {
-      raw[bWav] = v;
-      updateInstrByte(instrIdx, bWav, raw[bWav]);
-    }).row);
+    // Waveform visual selector
+    const wavRow = document.createElement('div');
+    wavRow.className = 'param-row';
+    const wavLabel = document.createElement('label');
+    wavLabel.textContent = 'Waveform';
+    wavRow.appendChild(wavLabel);
+    const wavSel = document.createElement('div');
+    wavSel.className = 'waveform-selector';
+    const waveSvgs = [
+      // 0: Sine
+      '<svg viewBox="0 0 28 16"><polyline points="0,8 3,4 7,1 11,4 14,8 17,12 21,15 25,12 28,8"/></svg>',
+      // 1: Half-sine (positive half only)
+      '<svg viewBox="0 0 28 16"><polyline points="0,14 3,10 7,3 11,1 14,3 17,10 21,14"/><line x1="21" y1="14" x2="28" y2="14"/></svg>',
+      // 2: Abs-sine (rectified)
+      '<svg viewBox="0 0 28 16"><polyline points="0,14 3,10 7,3 11,1 14,3 17,10 18,14 20,10 22,3 24,1 26,3 27,10 28,14"/></svg>',
+      // 3: Quarter-sine (rising portion)
+      '<svg viewBox="0 0 28 16"><polyline points="0,14 4,10 8,5 12,2 14,1"/><line x1="14" y1="14" x2="21" y2="14"/><polyline points="21,14 25,10 28,5"/></svg>',
+    ];
+    const currentWav = raw[bWav] & 0x3;
+    for (let w = 0; w < 4; w++) {
+      const btn = document.createElement('div');
+      btn.className = 'wave-btn' + (w === currentWav ? ' active' : '');
+      btn.innerHTML = waveSvgs[w];
+      btn.title = ['Sine', 'Half-sine', 'Abs-sine', 'Quarter-sine'][w];
+      btn.addEventListener('click', () => {
+        raw[bWav] = w;
+        updateInstrByte(instrIdx, bWav, w);
+        wavSel.querySelectorAll('.wave-btn').forEach((b, i) => b.classList.toggle('active', i === w));
+      });
+      wavSel.appendChild(btn);
+    }
+    wavRow.appendChild(wavSel);
+    container.appendChild(wavRow);
 
     // Checkboxes: Tremolo, Vibrato, Sustain, KSR (bits 7,6,5,4 of reg20 byte)
     const cbGroup = document.createElement('div');
