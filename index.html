@@ -340,19 +340,14 @@
     background: var(--accent-dim);
   }
 
-  .wave-btn svg {
+  .wave-btn img {
     width: 28px;
     height: 16px;
+    opacity: 0.5;
   }
 
-  .wave-btn svg polyline, .wave-btn svg line {
-    stroke: var(--text-dim);
-    fill: none;
-    stroke-width: 1.5;
-  }
-
-  .wave-btn.active svg polyline, .wave-btn.active svg line {
-    stroke: var(--accent);
+  .wave-btn.active img {
+    opacity: 1;
   }
 
   /* Info bar */
@@ -2343,22 +2338,19 @@
     wavRow.appendChild(wavLabel);
     const wavSel = document.createElement('div');
     wavSel.className = 'waveform-selector';
-    const waveSvgs = [
-      // 0: Sine
-      '<svg viewBox="0 0 28 16"><polyline points="0,8 3,4 7,1 11,4 14,8 17,12 21,15 25,12 28,8"/></svg>',
-      // 1: Half-sine (positive half only)
-      '<svg viewBox="0 0 28 16"><polyline points="0,14 3,10 7,3 11,1 14,3 17,10 21,14"/><line x1="21" y1="14" x2="28" y2="14"/></svg>',
-      // 2: Abs-sine (rectified)
-      '<svg viewBox="0 0 28 16"><polyline points="0,14 3,10 7,3 11,1 14,3 17,10 18,14 20,10 22,3 24,1 26,3 27,10 28,14"/></svg>',
-      // 3: Quarter-sine (rising portion)
-      '<svg viewBox="0 0 28 16"><polyline points="0,14 4,10 8,5 12,2 14,1"/><line x1="14" y1="14" x2="21" y2="14"/><polyline points="21,14 25,10 28,5"/></svg>',
+    const waveFiles = [
+      'images/waveform-sine.svg',
+      'images/waveform-half-sine.svg',
+      'images/waveform-abs-sine.svg',
+      'images/waveform-quarter-sine.svg',
     ];
+    const waveNames = ['Sine', 'Half-sine', 'Abs-sine', 'Quarter-sine'];
     const currentWav = raw[bWav] & 0x3;
     for (let w = 0; w < 4; w++) {
       const btn = document.createElement('div');
       btn.className = 'wave-btn' + (w === currentWav ? ' active' : '');
-      btn.innerHTML = waveSvgs[w];
-      btn.title = ['Sine', 'Half-sine', 'Abs-sine', 'Quarter-sine'][w];
+      btn.innerHTML = `<img src="${waveFiles[w]}" alt="${waveNames[w]}">`;
+      btn.title = waveNames[w];
       btn.addEventListener('click', () => {
         raw[bWav] = w;
         updateInstrByte(instrIdx, bWav, w);
