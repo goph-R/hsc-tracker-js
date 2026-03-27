@@ -128,14 +128,168 @@
     display: flex;
   }
 
-  /* Instruments tab placeholder */
-  .instruments-placeholder {
+  /* Instrument editor */
+  .instr-editor {
+    display: flex;
     flex: 1;
+    overflow: hidden;
+  }
+
+  .instr-list-panel {
+    width: 140px;
+    min-width: 140px;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-dark);
+    border-right: 1px solid var(--border);
+  }
+
+  .instr-list-header {
+    padding: 4px 8px;
+    font-size: 10px;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .instr-list {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .instr-item {
+    padding: 2px 8px;
+    font-size: 11px;
+    color: var(--text-dim);
+    cursor: pointer;
+    display: flex;
+    gap: 6px;
+  }
+
+  .instr-item:hover { background: var(--bg-light); }
+
+  .instr-item.current {
+    background: var(--highlight);
+    color: var(--text-bright);
+  }
+
+  .instr-item .instr-idx {
+    color: var(--text-dim);
+    min-width: 22px;
+  }
+
+  .instr-item.current .instr-idx {
+    color: var(--text);
+  }
+
+  .instr-item .instr-preview {
+    color: var(--inst-color);
+    font-size: 10px;
+  }
+
+  .instr-item.current .instr-preview {
+    color: var(--inst-color);
+  }
+
+  .instr-item.empty .instr-preview {
+    color: var(--text-dim);
+  }
+
+  .instr-params {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 16px;
+  }
+
+  .instr-params h3 {
+    font-size: 12px;
+    font-weight: normal;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+
+  .op-columns {
+    display: flex;
+    gap: 24px;
+  }
+
+  .op-column {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .op-column h4 {
+    font-size: 11px;
+    font-weight: normal;
+    color: var(--accent);
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .param-row {
     display: flex;
     align-items: center;
-    justify-content: center;
+    margin-bottom: 4px;
+    gap: 8px;
+  }
+
+  .param-row label {
+    font-size: 11px;
     color: var(--text-dim);
-    font-size: 14px;
+    min-width: 70px;
+  }
+
+  .param-row input[type="range"] {
+    flex: 1;
+    max-width: 120px;
+    accent-color: var(--accent);
+  }
+
+  .param-row .param-val {
+    font-size: 11px;
+    color: var(--accent);
+    min-width: 20px;
+    text-align: right;
+  }
+
+  .param-row input[type="checkbox"] {
+    accent-color: var(--accent);
+  }
+
+  .param-row .cb-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    cursor: pointer;
+  }
+
+  .checkbox-group {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+
+  .checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--text-dim);
+    cursor: pointer;
+  }
+
+  .global-params {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .global-params h4 {
+    font-size: 11px;
+    font-weight: normal;
+    color: var(--accent);
+    margin-bottom: 8px;
   }
 
   /* Info bar */
@@ -479,7 +633,25 @@
 
 <!-- Instruments tab -->
 <div class="tab-content" id="tabInstruments" style="display:none;">
-  <div class="instruments-placeholder">Instrument editor coming soon</div>
+  <div class="instr-editor">
+    <div class="instr-list-panel">
+      <div class="instr-list-header">Instruments</div>
+      <div class="instr-list" id="instrList"></div>
+    </div>
+    <div class="instr-params" id="instrParams">
+      <div class="op-columns">
+        <div class="op-column" id="opCarrier">
+          <h4>Carrier</h4>
+        </div>
+        <div class="op-column" id="opModulator">
+          <h4>Modulator</h4>
+        </div>
+      </div>
+      <div class="global-params" id="globalParams">
+        <h4>Channel</h4>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="drop-overlay" id="dropOverlay">DROP HSC FILE</div>
@@ -1367,15 +1539,19 @@
   }
 
   // ---- Note preview ----
-  async function previewNote(ch, noteByte) {
+  async function previewNote(ch, noteByte, instrOverride) {
     await initAudio();
     if (audioCtx.state === 'suspended') await audioCtx.resume();
     // Make sure worklet has the HSC data loaded
     if (hscCompact) {
       workletNode.port.postMessage({ type: 'loadHSC', hsc: hscCompact });
     }
-    const instrIdx = getChannelInstrument(ch);
+    const instrIdx = instrOverride !== undefined ? instrOverride : getChannelInstrument(ch);
     workletNode.port.postMessage({ type: 'previewNote', ch, note: noteByte, instrIdx });
+  }
+
+  function isInstrTabActive() {
+    return tabInstruments.classList.contains('active');
   }
 
   function stopNotePreview(ch) {
@@ -1419,6 +1595,29 @@
       } else {
         toggleEditMode();
       }
+      return;
+    }
+
+    // Instrument tab: piano keys for preview
+    if (isInstrTabActive() && !isPlaying) {
+      if (e.code in KEY_TO_NOTE) {
+        e.preventDefault();
+        const semitone = KEY_TO_NOTE[e.code];
+        const oct = currentOctave + Math.floor(semitone / 12);
+        const note = semitone % 12;
+        if (oct >= 0 && oct <= 7) {
+          const noteByte = (oct * 12 + note) + 1;
+          previewNote(0, noteByte, selectedInstr);
+        }
+        return;
+      }
+      if (e.code === 'Backquote') {
+        e.preventDefault();
+        stopNotePreview(0);
+        return;
+      }
+      if (e.key === '+') { e.preventDefault(); currentOctave = Math.min(7, currentOctave + 1); updateEditInfo(); return; }
+      if (e.key === '-') { e.preventDefault(); currentOctave = Math.max(0, currentOctave - 1); updateEditInfo(); return; }
       return;
     }
 
@@ -1534,6 +1733,245 @@
       enterNote(KEY_TO_NOTE[e.code]);
       return;
     }
+  });
+
+  // ---- Instrument editor ----
+  let selectedInstr = 0;
+  const instrListEl = document.getElementById('instrList');
+  const instrParamsEl = document.getElementById('instrParams');
+
+  function isInstrEmpty(ins) {
+    return ins.raw.every(b => b === 0);
+  }
+
+  function instrPreviewText(ins) {
+    if (isInstrEmpty(ins)) return '---';
+    // Show key params: AD SR connection
+    const ad = ins.raw[4].toString(16).toUpperCase().padStart(2, '0');
+    const sr = ins.raw[6].toString(16).toUpperCase().padStart(2, '0');
+    const conn = (ins.raw[8] & 1) ? 'AM' : 'FM';
+    return `${ad} ${sr} ${conn}`;
+  }
+
+  function buildInstrList() {
+    instrListEl.innerHTML = '';
+    if (!hscData) return;
+    for (let i = 0; i < 128; i++) {
+      const ins = hscData.instruments[i];
+      const el = document.createElement('div');
+      const empty = isInstrEmpty(ins);
+      el.className = 'instr-item' + (i === selectedInstr ? ' current' : '') + (empty ? ' empty' : '');
+      el.innerHTML = `<span class="instr-idx">${String(i).padStart(3, '0')}</span><span class="instr-preview">${instrPreviewText(ins)}</span>`;
+      el.addEventListener('click', () => selectInstrument(i));
+      instrListEl.appendChild(el);
+    }
+  }
+
+  function selectInstrument(idx) {
+    selectedInstr = idx;
+    const items = instrListEl.querySelectorAll('.instr-item');
+    items.forEach((el, i) => el.classList.toggle('current', i === idx));
+    loadInstrParams(idx);
+  }
+
+  // ---- Operator parameter controls ----
+  function makeSlider(label, min, max, value, onChange) {
+    const row = document.createElement('div');
+    row.className = 'param-row';
+    const lbl = document.createElement('label');
+    lbl.textContent = label;
+    const input = document.createElement('input');
+    input.type = 'range';
+    input.min = min;
+    input.max = max;
+    input.value = value;
+    const val = document.createElement('span');
+    val.className = 'param-val';
+    val.textContent = value;
+    input.addEventListener('input', () => {
+      val.textContent = input.value;
+      onChange(parseInt(input.value));
+    });
+    row.appendChild(lbl);
+    row.appendChild(input);
+    row.appendChild(val);
+    return { row, input, val };
+  }
+
+  function makeCheckbox(label, checked, onChange) {
+    const lbl = document.createElement('label');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = checked;
+    cb.addEventListener('change', () => onChange(cb.checked));
+    const span = document.createElement('span');
+    span.textContent = label;
+    lbl.appendChild(cb);
+    lbl.appendChild(span);
+    return { label: lbl, cb };
+  }
+
+  function updateInstrByte(instrIdx, byteIdx, value) {
+    hscData.instruments[instrIdx].raw[byteIdx] = value;
+    // Sync to compact
+    if (hscCompact) {
+      hscCompact.instruments[instrIdx][byteIdx] = value;
+    }
+    // Update list preview
+    const item = instrListEl.children[instrIdx];
+    if (item) {
+      const ins = hscData.instruments[instrIdx];
+      const empty = isInstrEmpty(ins);
+      item.classList.toggle('empty', empty);
+      item.querySelector('.instr-preview').textContent = instrPreviewText(ins);
+    }
+  }
+
+  function buildOperatorControls(container, instrIdx, isCarrier) {
+    container.innerHTML = '';
+    const title = document.createElement('h4');
+    title.textContent = isCarrier ? 'Carrier' : 'Modulator';
+    container.appendChild(title);
+
+    const raw = hscData.instruments[instrIdx].raw;
+    // Byte offsets: carrier = 0,2,4,6,9  modulator = 1,3,5,7,10
+    // reg20 byte: carrier=0, modulator=1
+    // TL byte: carrier=2, modulator=3
+    // AD byte: carrier=4, modulator=5
+    // SR byte: carrier=6, modulator=7
+    // Waveform byte: carrier=9, modulator=10
+    const b20 = isCarrier ? 0 : 1;
+    const bTL = isCarrier ? 2 : 3;
+    const bAD = isCarrier ? 4 : 5;
+    const bSR = isCarrier ? 6 : 7;
+    const bWav = isCarrier ? 9 : 10;
+
+    // Attack (high nibble of AD byte)
+    makeSlider('Attack', 0, 15, (raw[bAD] >> 4) & 0xF, v => {
+      updateInstrByte(instrIdx, bAD, (v << 4) | (raw[bAD] & 0x0F));
+    }).row && container.appendChild(makeSlider('Attack', 0, 15, (raw[bAD] >> 4) & 0xF, v => {
+      raw[bAD] = (v << 4) | (raw[bAD] & 0x0F);
+      updateInstrByte(instrIdx, bAD, raw[bAD]);
+    }).row);
+
+    // Decay (low nibble of AD byte)
+    container.appendChild(makeSlider('Decay', 0, 15, raw[bAD] & 0xF, v => {
+      raw[bAD] = (raw[bAD] & 0xF0) | v;
+      updateInstrByte(instrIdx, bAD, raw[bAD]);
+    }).row);
+
+    // Sustain (high nibble of SR byte, inverted: 15=silent, 0=max)
+    container.appendChild(makeSlider('Sustain', 0, 15, (raw[bSR] >> 4) & 0xF, v => {
+      raw[bSR] = (v << 4) | (raw[bSR] & 0x0F);
+      updateInstrByte(instrIdx, bSR, raw[bSR]);
+    }).row);
+
+    // Release (low nibble of SR byte)
+    container.appendChild(makeSlider('Release', 0, 15, raw[bSR] & 0xF, v => {
+      raw[bSR] = (raw[bSR] & 0xF0) | v;
+      updateInstrByte(instrIdx, bSR, raw[bSR]);
+    }).row);
+
+    // Output Level (low 6 bits of TL byte)
+    container.appendChild(makeSlider('Level', 0, 63, raw[bTL] & 0x3F, v => {
+      raw[bTL] = (raw[bTL] & 0xC0) | v;
+      updateInstrByte(instrIdx, bTL, raw[bTL]);
+    }).row);
+
+    // Multiplier (low 4 bits of reg20 byte)
+    container.appendChild(makeSlider('Multiplier', 0, 15, raw[b20] & 0xF, v => {
+      raw[b20] = (raw[b20] & 0xF0) | v;
+      updateInstrByte(instrIdx, b20, raw[b20]);
+    }).row);
+
+    // KSL (top 2 bits of TL byte)
+    container.appendChild(makeSlider('KSL', 0, 3, (raw[bTL] >> 6) & 0x3, v => {
+      raw[bTL] = (v << 6) | (raw[bTL] & 0x3F);
+      updateInstrByte(instrIdx, bTL, raw[bTL]);
+    }).row);
+
+    // Waveform
+    container.appendChild(makeSlider('Waveform', 0, 3, raw[bWav] & 0x3, v => {
+      raw[bWav] = v;
+      updateInstrByte(instrIdx, bWav, raw[bWav]);
+    }).row);
+
+    // Checkboxes: Tremolo, Vibrato, Sustain, KSR (bits 7,6,5,4 of reg20 byte)
+    const cbGroup = document.createElement('div');
+    cbGroup.className = 'checkbox-group';
+
+    cbGroup.appendChild(makeCheckbox('Tremolo', !!(raw[b20] & 0x80), v => {
+      raw[b20] = (raw[b20] & ~0x80) | (v ? 0x80 : 0);
+      updateInstrByte(instrIdx, b20, raw[b20]);
+    }).label);
+
+    cbGroup.appendChild(makeCheckbox('Vibrato', !!(raw[b20] & 0x40), v => {
+      raw[b20] = (raw[b20] & ~0x40) | (v ? 0x40 : 0);
+      updateInstrByte(instrIdx, b20, raw[b20]);
+    }).label);
+
+    cbGroup.appendChild(makeCheckbox('Sustain', !!(raw[b20] & 0x20), v => {
+      raw[b20] = (raw[b20] & ~0x20) | (v ? 0x20 : 0);
+      updateInstrByte(instrIdx, b20, raw[b20]);
+    }).label);
+
+    cbGroup.appendChild(makeCheckbox('KSR', !!(raw[b20] & 0x10), v => {
+      raw[b20] = (raw[b20] & ~0x10) | (v ? 0x10 : 0);
+      updateInstrByte(instrIdx, b20, raw[b20]);
+    }).label);
+
+    container.appendChild(cbGroup);
+  }
+
+  function buildGlobalControls(container, instrIdx) {
+    container.innerHTML = '';
+    const title = document.createElement('h4');
+    title.textContent = 'Channel';
+    container.appendChild(title);
+
+    const raw = hscData.instruments[instrIdx].raw;
+
+    // Feedback (bits 1-3 of byte 8)
+    container.appendChild(makeSlider('Feedback', 0, 7, (raw[8] >> 1) & 0x7, v => {
+      raw[8] = (raw[8] & 1) | (v << 1);
+      updateInstrByte(instrIdx, 8, raw[8]);
+    }).row);
+
+    // Connection (bit 0 of byte 8): 0=FM, 1=AM
+    const cbGroup = document.createElement('div');
+    cbGroup.className = 'checkbox-group';
+    cbGroup.appendChild(makeCheckbox('Additive (AM)', !!(raw[8] & 1), v => {
+      raw[8] = (raw[8] & ~1) | (v ? 1 : 0);
+      updateInstrByte(instrIdx, 8, raw[8]);
+    }).label);
+    container.appendChild(cbGroup);
+
+    // Fine-tune (byte 11)
+    container.appendChild(makeSlider('Fine-tune', 0, 15, raw[11], v => {
+      raw[11] = v;
+      updateInstrByte(instrIdx, 11, raw[11]);
+    }).row);
+  }
+
+  function loadInstrParams(instrIdx) {
+    const carrierEl = document.getElementById('opCarrier');
+    const modulatorEl = document.getElementById('opModulator');
+    const globalEl = document.getElementById('globalParams');
+    buildOperatorControls(carrierEl, instrIdx, true);
+    buildOperatorControls(modulatorEl, instrIdx, false);
+    buildGlobalControls(globalEl, instrIdx);
+  }
+
+  // Build instrument list when file is loaded — hook into onFileLoaded
+  const origOnFileLoaded = onFileLoaded;
+  // We can't easily hook, so we'll call buildInstrList from the tab switch
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      if (tab.dataset.tab === 'instruments' && hscData) {
+        buildInstrList();
+        loadInstrParams(selectedInstr);
+      }
+    });
   });
 })();
 </script>

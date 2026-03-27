@@ -102,8 +102,7 @@ class HSCSeq {
     const freq = NOTE_FREQ[noteVal % 12];
     this.opl.write(0xb0 + chan, 0); // key-off first
     this.adl_freq[chan] = oct | 32;  // key-on
-    this.opl.write(0xa0 + chan, freq & 0xff);
-    this.opl.write(0xb0 + chan, this.adl_freq[chan]);
+    this.setfreq(chan, freq);
   }
 
   stopPreview(chan) {
