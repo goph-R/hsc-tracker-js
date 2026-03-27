@@ -852,8 +852,18 @@
   });
 
   // ---- File loading ----
-  document.getElementById('btnNew').addEventListener('click', newSong);
-  btnOpen.addEventListener('click', () => fileInput.click());
+  function confirmIfLoaded() {
+    return !hscData || confirm('Discard current song?');
+  }
+  document.getElementById('btnNew').addEventListener('click', () => {
+    if (confirmIfLoaded()) newSong();
+  });
+  btnOpen.addEventListener('click', () => {
+    if (confirmIfLoaded()) {
+      fileInput.value = '';
+      fileInput.click();
+    }
+  });
   fileInput.addEventListener('change', (e) => {
     if (e.target.files.length > 0) loadFile(e.target.files[0]);
   });
