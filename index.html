@@ -590,6 +590,7 @@
     margin-bottom: 3px;
     border-bottom: 1px solid var(--border);
     padding-bottom: 2px;
+    padding-top: 10px;
   }
 
   .shortcuts-panel table {
@@ -723,8 +724,14 @@
       <div class="shortcut-section">
         <h4>Editing</h4>
         <table>
-          <tr><td>Z S X D C V G B H N J M</td><td>Lower octave notes</td></tr>
-          <tr><td>Q 2 W 3 E R 5 T 6 Y 7 U</td><td>Upper octave notes</td></tr>
+          <tr><td style="padding-top: 1em; padding-bottom: 0.5em;">
+            &nbsp;2&nbsp;3&nbsp;&nbsp;&nbsp;5&nbsp;6&nbsp;7<br>
+            Q&nbsp;W&nbsp;E&nbsp;R&nbsp;T&nbsp;Y&nbsp;U
+          </td><td>Upper octave notes</td></tr>
+          <tr><td style="padding-top: 0.5em; padding-bottom: 1em;">
+            &nbsp;S&nbsp;D&nbsp;&nbsp;&nbsp;G&nbsp;H&nbsp;J<br>
+            Z&nbsp;X&nbsp;C&nbsp;V&nbsp;B&nbsp;N&nbsp;M
+          </td><td>Lower octave notes</td></tr>
           <tr><td>` (backtick)</td><td>Key-off</td></tr>
           <tr><td>Insert</td><td>Instrument-set</td></tr>
           <tr><td>Delete</td><td>Clear cell</td></tr>
@@ -735,7 +742,15 @@
         </table>
       </div>
       <div class="shortcut-section">
-        <h4>Effects</h4>
+        <h4>Other</h4>
+        <table>
+          <tr><td>Ctrl+S</td><td>Save song</td></tr>
+          <tr><td>F1</td><td>Toggle this panel</td></tr>
+        </table>
+      </div>     
+      <h3>Effects</h3> 
+      <div class="shortcut-section">
+        <h4></h4>
         <table>
           <tr><td>00</td><td>No effect</td></tr>
           <tr><td>01</td><td>Pattern break</td></tr>
@@ -753,13 +768,7 @@
           <tr><td>Fx</td><td>Set speed (x = 0-F)</td></tr>
         </table>
       </div>
-      <div class="shortcut-section">
-        <h4>Other</h4>
-        <table>
-          <tr><td>Ctrl+S</td><td>Save song</td></tr>
-          <tr><td>F1</td><td>Toggle this panel</td></tr>
-        </table>
-      </div>
+
     </div>
   </div>
 
@@ -808,8 +817,14 @@
       <div class="shortcut-section">
         <h4>Preview</h4>
         <table>
-          <tr><td>Z S X D C V G B H N J M</td><td>Lower octave notes</td></tr>
-          <tr><td>Q 2 W 3 E R 5 T 6 Y 7 U</td><td>Upper octave notes</td></tr>
+          <tr><td style="padding-top: 1em; padding-bottom: 0.5em;">
+            &nbsp;2&nbsp;3&nbsp;&nbsp;&nbsp;5&nbsp;6&nbsp;7<br>
+            Q&nbsp;W&nbsp;E&nbsp;R&nbsp;T&nbsp;Y&nbsp;U
+          </td><td>Upper octave notes</td></tr>
+          <tr><td style="padding-top: 0.5em; padding-bottom: 1em;">
+            &nbsp;S&nbsp;D&nbsp;&nbsp;&nbsp;G&nbsp;H&nbsp;J<br>
+            Z&nbsp;X&nbsp;C&nbsp;V&nbsp;B&nbsp;N&nbsp;M
+          </td><td>Lower octave notes</td></tr>
           <tr><td>` (backtick)</td><td>Stop all notes</td></tr>
           <tr><td>+ / -</td><td>Octave up / down</td></tr>
         </table>
@@ -846,6 +861,10 @@
     <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text); cursor:pointer; margin-top:8px;">
       <input type="checkbox" id="settingHelp" checked style="accent-color:var(--accent);">
       Help visible
+    </label>
+    <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text); cursor:pointer; margin-top:8px;">
+      <input type="checkbox" id="settingQwertz" style="accent-color:var(--accent);">
+      Use QWERTZ layout
     </label>
   </div>
 </div>
@@ -887,6 +906,7 @@
   let settings = {
     blinkOnNote: true,
     helpVisible: true,
+    qwertz: false,
   };
   // Load from localStorage
   try {
@@ -916,6 +936,14 @@
     settings.helpVisible = settingHelpEl.checked;
     saveSettings();
     applyHelpVisible();
+  });
+
+  const settingQwertzEl = document.getElementById('settingQwertz');
+  settingQwertzEl.checked = settings.qwertz;
+  settingQwertzEl.addEventListener('change', () => {
+    settings.qwertz = settingQwertzEl.checked;
+    saveSettings();
+    applyKeyLayout();
   });
 
   // Note names for display
@@ -1720,14 +1748,23 @@
 
   // ---- Pattern data editing ----
   // Piano keyboard → semitone offset (within one octave)
-  const KEY_TO_NOTE = {
-    // Lower octave: Z S X D C V G B H N J M
-    'KeyZ': 0, 'KeyS': 1, 'KeyX': 2, 'KeyD': 3, 'KeyC': 4, 'KeyV': 5,
-    'KeyG': 6, 'KeyB': 7, 'KeyH': 8, 'KeyN': 9, 'KeyJ': 10, 'KeyM': 11,
-    // Upper octave: Q 2 W 3 E R 5 T 6 Y 7 U
-    'KeyQ': 12, 'Digit2': 13, 'KeyW': 14, 'Digit3': 15, 'KeyE': 16, 'KeyR': 17,
-    'Digit5': 18, 'KeyT': 19, 'Digit6': 20, 'KeyY': 21, 'Digit7': 22, 'KeyU': 23,
-  };
+  // Piano keyboard → semitone offset (within one octave)
+  // QWERTY: Z=C, Y=A#(upper)  QWERTZ: Y=C, Z=A#(upper)
+  let KEY_TO_NOTE = {};
+
+  function applyKeyLayout() {
+    const z = settings.qwertz ? 'KeyY' : 'KeyZ';
+    const y = settings.qwertz ? 'KeyZ' : 'KeyY';
+    KEY_TO_NOTE = {
+      // Lower octave
+      [z]: 0, 'KeyS': 1, 'KeyX': 2, 'KeyD': 3, 'KeyC': 4, 'KeyV': 5,
+      'KeyG': 6, 'KeyB': 7, 'KeyH': 8, 'KeyN': 9, 'KeyJ': 10, 'KeyM': 11,
+      // Upper octave
+      'KeyQ': 12, 'Digit2': 13, 'KeyW': 14, 'Digit3': 15, 'KeyE': 16, 'KeyR': 17,
+      'Digit5': 18, 'KeyT': 19, 'Digit6': 20, [y]: 21, 'Digit7': 22, 'KeyU': 23,
+    };
+  }
+  applyKeyLayout();
 
   function writeNoteToPattern(row, ch, noteByte, effectByte) {
     const pat = hscData.patterns[currentPatIdx];
