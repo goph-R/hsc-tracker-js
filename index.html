@@ -1591,6 +1591,25 @@
   document.addEventListener('keydown', (e) => {
     if (!hscData) return;
 
+    // Ctrl+S: save
+    if (e.ctrlKey && e.code === 'KeyS') {
+      e.preventDefault();
+      saveFile();
+      return;
+    }
+
+    // Ctrl+C/V: instrument copy/paste (on Instruments tab)
+    if (e.ctrlKey && e.code === 'KeyC' && isInstrTabActive()) {
+      e.preventDefault();
+      instrCopy();
+      return;
+    }
+    if (e.ctrlKey && e.code === 'KeyV' && isInstrTabActive()) {
+      e.preventDefault();
+      instrPaste();
+      return;
+    }
+
     // Escape: stop playback
     if (e.code === 'Escape') {
       e.preventDefault();
@@ -1801,6 +1820,24 @@
     const items = instrListEl.querySelectorAll('.instr-item');
     items.forEach((el, i) => el.classList.toggle('current', i === idx));
     loadInstrParams(idx);
+  }
+
+  // ---- Instrument copy/paste ----
+  let instrClipboard = null;
+
+  function instrCopy() {
+    if (!hscData) return;
+    instrClipboard = new Uint8Array(hscData.instruments[selectedInstr].raw);
+  }
+
+  function instrPaste() {
+    if (!hscData || !instrClipboard) return;
+    const raw = hscData.instruments[selectedInstr].raw;
+    for (let i = 0; i < 12; i++) {
+      raw[i] = instrClipboard[i];
+      updateInstrByte(selectedInstr, i, raw[i]);
+    }
+    loadInstrParams(selectedInstr);
   }
 
   // ---- Operator parameter controls ----
