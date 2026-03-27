@@ -296,6 +296,16 @@
     margin-bottom: 8px;
   }
 
+  /* ADSR envelope canvas */
+  .adsr-canvas {
+    width: 100%;
+    height: 60px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    margin-bottom: 8px;
+  }
+
   /* Waveform selector */
   .waveform-selector {
     display: flex;
@@ -1963,6 +1973,66 @@
     }
   }
 
+  function drawADSR(canvas, attack, decay, sustain, release) {
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+    const pad = 4;
+    const drawW = w - pad * 2;
+    const drawH = h - pad * 2;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // Sustain level: 0=max volume, 15=silent
+    const sustainLevel = 1 - (sustain / 15);
+
+    // Time proportions (inverse: 15=fastest, 0=slowest)
+    const aTime = attack === 0 ? 0.3 : (16 - attack) / 16 * 0.25;
+    const dTime = decay === 0 ? 0.3 : (16 - decay) / 16 * 0.25;
+    const sTime = 0.25;
+    const rTime = release === 0 ? 0.3 : (16 - release) / 16 * 0.25;
+    const total = aTime + dTime + sTime + rTime;
+
+    const x = t => pad + (t / total) * drawW;
+    const y = v => pad + (1 - v) * drawH;
+
+    // Draw grid lines
+    ctx.strokeStyle = '#333355';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(pad, y(0)); ctx.lineTo(pad + drawW, y(0));
+    ctx.moveTo(pad, y(0.5)); ctx.lineTo(pad + drawW, y(0.5));
+    ctx.moveTo(pad, y(1)); ctx.lineTo(pad + drawW, y(1));
+    ctx.stroke();
+
+    // Draw envelope
+    ctx.strokeStyle = '#40c060';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x(0), y(0));
+    // Attack: 0 → 1
+    ctx.lineTo(x(aTime), y(1));
+    // Decay: 1 → sustain level
+    ctx.lineTo(x(aTime + dTime), y(sustainLevel));
+    // Sustain: hold
+    ctx.lineTo(x(aTime + dTime + sTime), y(sustainLevel));
+    // Release: sustain → 0
+    ctx.lineTo(x(total), y(0));
+    ctx.stroke();
+
+    // Draw dots at key points
+    ctx.fillStyle = '#40c060';
+    const dots = [
+      [0, 0], [aTime, 1], [aTime + dTime, sustainLevel],
+      [aTime + dTime + sTime, sustainLevel], [total, 0]
+    ];
+    for (const [t, v] of dots) {
+      ctx.beginPath();
+      ctx.arc(x(t), y(v), 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   function buildOperatorControls(container, instrIdx, isCarrier) {
     container.innerHTML = '';
     const title = document.createElement('h4');
@@ -1970,42 +2040,55 @@
     container.appendChild(title);
 
     const raw = hscData.instruments[instrIdx].raw;
-    // Byte offsets: carrier = 0,2,4,6,9  modulator = 1,3,5,7,10
-    // reg20 byte: carrier=0, modulator=1
-    // TL byte: carrier=2, modulator=3
-    // AD byte: carrier=4, modulator=5
-    // SR byte: carrier=6, modulator=7
-    // Waveform byte: carrier=9, modulator=10
     const b20 = isCarrier ? 0 : 1;
     const bTL = isCarrier ? 2 : 3;
     const bAD = isCarrier ? 4 : 5;
     const bSR = isCarrier ? 6 : 7;
     const bWav = isCarrier ? 9 : 10;
 
+    // ADSR envelope canvas
+    const canvas = document.createElement('canvas');
+    canvas.className = 'adsr-canvas';
+    canvas.width = 300;
+    canvas.height = 60;
+    container.appendChild(canvas);
+
+    function refreshADSR() {
+      drawADSR(canvas,
+        (raw[bAD] >> 4) & 0xF,
+        raw[bAD] & 0xF,
+        (raw[bSR] >> 4) & 0xF,
+        raw[bSR] & 0xF
+      );
+    }
+    refreshADSR();
+
     // Attack (high nibble of AD byte)
-    makeSlider('Attack', 0, 15, (raw[bAD] >> 4) & 0xF, v => {
-      updateInstrByte(instrIdx, bAD, (v << 4) | (raw[bAD] & 0x0F));
-    }).row && container.appendChild(makeSlider('Attack', 0, 15, (raw[bAD] >> 4) & 0xF, v => {
+    container.appendChild(makeSlider('Attack', 0, 15, (raw[bAD] >> 4) & 0xF, v => {
       raw[bAD] = (v << 4) | (raw[bAD] & 0x0F);
       updateInstrByte(instrIdx, bAD, raw[bAD]);
+      refreshADSR();
     }).row);
 
     // Decay (low nibble of AD byte)
     container.appendChild(makeSlider('Decay', 0, 15, raw[bAD] & 0xF, v => {
       raw[bAD] = (raw[bAD] & 0xF0) | v;
       updateInstrByte(instrIdx, bAD, raw[bAD]);
+      refreshADSR();
     }).row);
 
     // Sustain (high nibble of SR byte, inverted: 15=silent, 0=max)
     container.appendChild(makeSlider('Sustain', 0, 15, (raw[bSR] >> 4) & 0xF, v => {
       raw[bSR] = (v << 4) | (raw[bSR] & 0x0F);
       updateInstrByte(instrIdx, bSR, raw[bSR]);
+      refreshADSR();
     }).row);
 
     // Release (low nibble of SR byte)
     container.appendChild(makeSlider('Release', 0, 15, raw[bSR] & 0xF, v => {
       raw[bSR] = (raw[bSR] & 0xF0) | v;
       updateInstrByte(instrIdx, bSR, raw[bSR]);
+      refreshADSR();
     }).row);
 
     // Output Level (low 6 bits of TL byte)
