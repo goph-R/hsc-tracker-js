@@ -644,6 +644,7 @@
 <div class="tab-bar" id="tabBar" style="display:none;">
   <div class="tab active" data-tab="tracker">Tracker</div>
   <div class="tab" data-tab="instruments">Instruments</div>
+  <div class="tab" data-tab="settings">Settings</div>
 </div>
 
 <div class="welcome" id="welcomeScreen">
@@ -720,6 +721,17 @@
   </div>
 </div>
 
+<!-- Settings tab -->
+<div class="tab-content" id="tabSettings" style="display:none;">
+  <div style="padding:16px; max-width:400px;">
+    <h3 style="font-size:13px; font-weight:normal; color:var(--text-dim); margin-bottom:12px; letter-spacing:1px;">Settings</h3>
+    <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text); cursor:pointer;">
+      <input type="checkbox" id="settingBlink" checked style="accent-color:var(--accent);">
+      Blink effect on note
+    </label>
+  </div>
+</div>
+
 <div class="drop-overlay" id="dropOverlay">DROP HSC FILE</div>
 
 <input type="file" id="fileInput" accept=".hsc,.HSC">
@@ -752,6 +764,23 @@
     document.querySelectorAll('input[type="number"]').forEach(setupScrollInput);
   }).observe(document.body, { childList: true, subtree: true });
 
+  // ---- Settings ----
+  let settings = {
+    blinkOnNote: true,
+  };
+  // Load from localStorage
+  try {
+    const saved = JSON.parse(localStorage.getItem('hsc-tracker-settings'));
+    if (saved) Object.assign(settings, saved);
+  } catch (e) {}
+
+  const settingBlinkEl = document.getElementById('settingBlink');
+  settingBlinkEl.checked = settings.blinkOnNote;
+  settingBlinkEl.addEventListener('change', () => {
+    settings.blinkOnNote = settingBlinkEl.checked;
+    localStorage.setItem('hsc-tracker-settings', JSON.stringify(settings));
+  });
+
   // Note names for display
   const NOTE_NAMES = ['C-', 'C#', 'D-', 'D#', 'E-', 'F-', 'F#', 'G-', 'G#', 'A-', 'A#', 'B-'];
 
@@ -782,6 +811,7 @@
   const tabBar = document.getElementById('tabBar');
   const tabTracker = document.getElementById('tabTracker');
   const tabInstruments = document.getElementById('tabInstruments');
+  const tabSettings = document.getElementById('tabSettings');
   const patternContainer = document.getElementById('patternContainer');
   const patternHeader = document.getElementById('patternHeader');
   const patternRows = document.getElementById('patternRows');
@@ -809,7 +839,7 @@
 
   // ---- Tab switching ----
   const tabs = document.querySelectorAll('.tab');
-  const tabContents = { tracker: tabTracker, instruments: tabInstruments };
+  const tabContents = { tracker: tabTracker, instruments: tabInstruments, settings: tabSettings };
 
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
@@ -930,6 +960,7 @@
     tabTracker.style.display = '';
     tabTracker.classList.add('active');
     tabInstruments.style.display = '';
+    tabSettings.style.display = '';
 
     btnPlay.disabled = false;
     btnStop.disabled = true;
@@ -1314,6 +1345,7 @@
   }
 
   function updateLevels(levels) {
+    if (!settings.blinkOnNote) return;
     for (let ch = 0; ch < 9 && ch < chanHeaderEls.length; ch++) {
       const active = (levels[ch] || 0) > 0.1;
       chanHeaderEls[ch].classList.toggle('active', active);
