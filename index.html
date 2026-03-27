@@ -215,11 +215,13 @@
   .op-columns {
     display: flex;
     gap: 24px;
+    max-width: 700px;
   }
 
   .op-column {
     flex: 1;
     min-width: 200px;
+    max-width: 320px;
   }
 
   .op-column h4 {
@@ -287,6 +289,7 @@
     margin-top: 16px;
     padding-top: 12px;
     border-top: 1px solid var(--border);
+    max-width: 340px;
   }
 
   .global-params h4 {
@@ -726,10 +729,27 @@
 (function() {
   'use strict';
 
-  // Make buttons unfocusable (inputs stay focusable for typing values)
+  // Make buttons unfocusable, add scroll-to-change on number inputs
+  function setupScrollInput(el) {
+    if (el.dataset.scrollBound) return;
+    el.dataset.scrollBound = '1';
+    el.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const step = parseInt(el.step) || 1;
+      const min = parseFloat(el.min);
+      const max = parseFloat(el.max);
+      let val = (parseFloat(el.value) || 0) + (e.deltaY < 0 ? step : -step);
+      if (!isNaN(min)) val = Math.max(min, val);
+      if (!isNaN(max)) val = Math.min(max, val);
+      el.value = val;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    }, { passive: false });
+  }
   document.querySelectorAll('button').forEach(el => el.tabIndex = -1);
+  document.querySelectorAll('input[type="number"]').forEach(setupScrollInput);
   new MutationObserver(() => {
     document.querySelectorAll('button:not([tabindex])').forEach(el => el.tabIndex = -1);
+    document.querySelectorAll('input[type="number"]').forEach(setupScrollInput);
   }).observe(document.body, { childList: true, subtree: true });
 
   // Note names for display
