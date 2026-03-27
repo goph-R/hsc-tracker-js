@@ -18,6 +18,7 @@ class HSCWorkletProcessor extends AudioWorkletProcessor {
 
     // Channel activity levels for visualization
     this.chLevels = new Float32Array(9);
+    this.chPrevKeyOn = new Uint8Array(9);
     this.levelSendCounter = 0;
 
     this.port.onmessage = (e) => {
@@ -106,11 +107,12 @@ class HSCWorkletProcessor extends AudioWorkletProcessor {
           // Send state to main thread for UI update
           this.port.postMessage({ type: 'state', state });
 
-          // Update channel levels based on key-on state
+          // Update channel levels on key-on edges (new note triggers)
           for (let c = 0; c < 9; c++) {
-            if (state.chKeyOn[c]) {
+            if (state.chKeyOn[c] && !this.chPrevKeyOn[c]) {
               this.chLevels[c] = 1.0;
             }
+            this.chPrevKeyOn[c] = state.chKeyOn[c];
           }
         }
       }
@@ -118,7 +120,7 @@ class HSCWorkletProcessor extends AudioWorkletProcessor {
 
     // Decay channel levels
     for (let c = 0; c < 9; c++) {
-      this.chLevels[c] *= 0.95;
+      this.chLevels[c] *= 0.85;
     }
 
     this.levelSendCounter += numSamples;
