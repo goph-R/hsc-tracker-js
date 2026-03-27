@@ -905,6 +905,42 @@
   document.getElementById('btnOrderPlus').addEventListener('click', () => orderChangePat(1));
   document.getElementById('btnOrderMinus').addEventListener('click', () => orderChangePat(-1));
 
+  // ---- Channel state scanner ----
+  // Walk through the song up to (songPos, pattPos) and collect
+  // the last instrument-set per channel. Also collects speed.
+  function scanChannelState(targetSongPos, targetPattPos) {
+    const channelInstr = new Array(9).fill(0); // default instruments 0-8
+    for (let i = 0; i < 9; i++) channelInstr[i] = i;
+    let speed = 2;
+
+    const orderLen = getOrderLength();
+    for (let sp = 0; sp <= targetSongPos && sp < orderLen; sp++) {
+      const patIdx = hscData.orderList[sp];
+      if (patIdx >= hscData.patternCount) continue;
+      const pat = hscData.patterns[patIdx];
+      const lastRow = (sp === targetSongPos) ? targetPattPos : 63;
+      for (let row = 0; row <= lastRow; row++) {
+        for (let ch = 0; ch < 9; ch++) {
+          const note = pat[row][ch].note;
+          const effect = pat[row][ch].effect;
+          if (note & 0x80) {
+            channelInstr[ch] = effect;
+          }
+          // Track speed changes
+          if (!(note & 0x80) && (effect & 0xF0) === 0xF0) {
+            speed = (effect & 0x0F) + 1;
+          }
+        }
+      }
+    }
+    return { channelInstr, speed };
+  }
+
+  // Get the instrument index for a specific channel at the cursor position
+  function getChannelInstrument(ch) {
+    return scanChannelState(orderSelectedIdx, cursorRow).channelInstr[ch];
+  }
+
   // ---- Channel levels ----
   function buildLevelsBar() {
     let html = '';
@@ -988,10 +1024,11 @@
   }
 
   async function startPlaybackFrom(songPos, pattPos) {
-    await doStartPlayback('playFrom', songPos, pattPos);
+    const state = scanChannelState(songPos, pattPos);
+    await doStartPlayback('playFrom', songPos, pattPos, state);
   }
 
-  async function doStartPlayback(type, songPos, pattPos) {
+  async function doStartPlayback(type, songPos, pattPos, state) {
     if (!hscCompact) return;
 
     await initAudio();
@@ -1005,7 +1042,11 @@
     // Send HSC data to worklet and start playback
     workletNode.port.postMessage({ type: 'loadHSC', hsc: hscCompact });
     if (type === 'playFrom') {
-      workletNode.port.postMessage({ type: 'playFrom', songPos, pattPos });
+      workletNode.port.postMessage({
+        type: 'playFrom', songPos, pattPos,
+        channelInstr: state.channelInstr,
+        speed: state.speed,
+      });
     } else {
       workletNode.port.postMessage({ type: 'play' });
     }
@@ -1136,12 +1177,14 @@
     const pat = hscData.patterns[currentPatIdx];
     const effectByte = pat[cursorRow][cursorCh].effect;
     writeNoteToPattern(cursorRow, cursorCh, noteByte, effectByte);
+    previewNote(cursorCh, noteByte);
     advanceCursor();
   }
 
   function enterKeyOff() {
     const effectByte = hscData.patterns[currentPatIdx][cursorRow][cursorCh].effect;
     writeNoteToPattern(cursorRow, cursorCh, 0x7F, effectByte);
+    stopNotePreview(cursorCh);
     advanceCursor();
   }
 
@@ -1177,6 +1220,24 @@
     infoOctaveEl.value = currentOctave;
     infoInstrumentEl.value = currentInstrument;
     infoStepEl.value = editStep;
+  }
+
+  // ---- Note preview ----
+  async function previewNote(ch, noteByte) {
+    await initAudio();
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+    // Make sure worklet has the HSC data loaded
+    if (hscCompact) {
+      workletNode.port.postMessage({ type: 'loadHSC', hsc: hscCompact });
+    }
+    const instrIdx = getChannelInstrument(ch);
+    workletNode.port.postMessage({ type: 'previewNote', ch, note: noteByte, instrIdx });
+  }
+
+  function stopNotePreview(ch) {
+    if (workletNode) {
+      workletNode.port.postMessage({ type: 'stopPreview', ch });
+    }
   }
 
   // ---- Keyboard handling ----

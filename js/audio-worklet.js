@@ -28,10 +28,18 @@ class HSCWorkletProcessor extends AudioWorkletProcessor {
         this.seq.start();
         this.tickAccum = 0;
       } else if (msg.type === 'playFrom') {
-        this.seq.startFrom(msg.songPos, msg.pattPos);
+        this.seq.startFrom(msg.songPos, msg.pattPos, msg.channelInstr, msg.speed);
         this.tickAccum = 0;
       } else if (msg.type === 'stop') {
         this.seq.stop();
+      } else if (msg.type === 'previewNote') {
+        // Set instrument and play a single note for preview
+        this.seq.setinstr(msg.ch, msg.instrIdx);
+        this.seq.previewNote(msg.ch, msg.note);
+        this.previewing = true;
+      } else if (msg.type === 'stopPreview') {
+        this.seq.stopPreview(msg.ch);
+        this.previewing = false;
       }
     };
   }
@@ -44,9 +52,24 @@ class HSCWorkletProcessor extends AudioWorkletProcessor {
     const outR = output.length > 1 ? output[1] : null;
     const numSamples = outL.length;
 
-    if (!this.seq.playing) {
+    if (!this.seq.playing && !this.previewing) {
       outL.fill(0);
       if (outR) outR.fill(0);
+      return true;
+    }
+
+    // Preview mode: just generate OPL2 audio without sequencer ticks
+    if (this.previewing && !this.seq.playing) {
+      if (this._buf.length < numSamples) {
+        this._buf = new Float32Array(numSamples);
+      }
+      this.opl2.generate(numSamples, this._buf);
+      const masterVol = 0.5;
+      for (let i = 0; i < numSamples; i++) {
+        const s = this._buf[i] * masterVol;
+        outL[i] = s;
+        if (outR) outR[i] = s;
+      }
       return true;
     }
 

@@ -68,12 +68,19 @@ class HSCSeq {
     this.rewind();
   }
 
-  startFrom(songPos, pattPos) {
+  startFrom(songPos, pattPos, channelInstr, speed) {
     if (!this.hsc) return;
     this.rewind();
     this.songpos = songPos;
     this.pattpos = pattPos;
     this.del = 1;
+    if (speed) this.speed = speed;
+    // Apply scanned instrument state
+    if (channelInstr) {
+      for (let ch = 0; ch < 9; ch++) {
+        this.setinstr(ch, channelInstr[ch]);
+      }
+    }
     this.playing = true;
   }
 
@@ -82,6 +89,23 @@ class HSCSeq {
     for (let ch = 0; ch < 9; ch++) {
       this.opl.write(0xb0 + ch, 0);
     }
+  }
+
+  // Preview a single note on a channel (for edit mode)
+  previewNote(chan, noteByte) {
+    if (!this.hsc) return;
+    const noteVal = noteByte - 1;
+    if (noteVal < 0 || noteVal === 0x7E) return;
+    const oct = (Math.floor(noteVal / 12) & 7) << 2;
+    const freq = NOTE_FREQ[noteVal % 12];
+    this.opl.write(0xb0 + chan, 0); // key-off first
+    this.adl_freq[chan] = oct | 32;  // key-on
+    this.opl.write(0xa0 + chan, freq & 0xff);
+    this.opl.write(0xb0 + chan, this.adl_freq[chan]);
+  }
+
+  stopPreview(chan) {
+    this.opl.write(0xb0 + chan, 0);
   }
 
   // Exact port of AdPlug's setfreq()
