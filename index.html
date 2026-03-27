@@ -652,6 +652,9 @@
       </div>
     </div>
   </div>
+  <div class="instr-bar">
+    <span>Octave: <input type="number" id="instrOctave" value="4" min="0" max="7" style="width:36px; background:var(--bg-light); color:var(--accent); border:1px solid var(--border); font-family:inherit; font-size:11px; text-align:center; padding:1px 2px;"></span>
+  </div>
 </div>
 
 <div class="drop-overlay" id="dropOverlay">DROP HSC FILE</div>
@@ -833,6 +836,7 @@
 
   function onFileLoaded() {
     if (isPlaying) stopPlayback();
+    previewHscLoaded = false;
 
     // Update UI
     welcomeScreen.style.display = 'none';
@@ -1303,6 +1307,7 @@
     lastHighlightRow = -1;
 
     // Send HSC data to worklet and start playback
+    previewHscLoaded = false;
     workletNode.port.postMessage({ type: 'loadHSC', hsc: hscCompact });
     if (type === 'playFrom') {
       workletNode.port.postMessage({
@@ -1539,20 +1544,42 @@
   }
 
   // ---- Note preview ----
-  async function previewNote(ch, noteByte, instrOverride) {
+  let previewHscLoaded = false;
+
+  async function ensurePreviewReady() {
     await initAudio();
     if (audioCtx.state === 'suspended') await audioCtx.resume();
-    // Make sure worklet has the HSC data loaded
-    if (hscCompact) {
+    if (!previewHscLoaded && hscCompact) {
       workletNode.port.postMessage({ type: 'loadHSC', hsc: hscCompact });
+      previewHscLoaded = true;
     }
+  }
+
+  async function previewNote(ch, noteByte, instrOverride) {
+    await ensurePreviewReady();
     const instrIdx = instrOverride !== undefined ? instrOverride : getChannelInstrument(ch);
     workletNode.port.postMessage({ type: 'previewNote', ch, note: noteByte, instrIdx });
+  }
+
+  function reloadPreviewData() {
+    if (previewHscLoaded && workletNode && hscCompact) {
+      workletNode.port.postMessage({ type: 'loadHSC', hsc: hscCompact });
+    }
   }
 
   function isInstrTabActive() {
     return tabInstruments.classList.contains('active');
   }
+
+  // Instrument tab octave input
+  const instrOctaveEl = document.getElementById('instrOctave');
+  instrOctaveEl.addEventListener('keydown', (e) => e.stopPropagation());
+  instrOctaveEl.addEventListener('focus', () => instrOctaveEl.select());
+  instrOctaveEl.addEventListener('input', () => {
+    instrOctave = Math.max(0, Math.min(7, parseInt(instrOctaveEl.value) || 0));
+  });
+  let instrOctave = 4;
+  let instrPreviewCh = 0; // rotating channel for polyphonic preview
 
   function stopNotePreview(ch) {
     if (workletNode) {
@@ -1598,26 +1625,28 @@
       return;
     }
 
-    // Instrument tab: piano keys for preview
+    // Instrument tab: piano keys for preview with channel rotation
     if (isInstrTabActive() && !isPlaying) {
       if (e.code in KEY_TO_NOTE) {
         e.preventDefault();
         const semitone = KEY_TO_NOTE[e.code];
-        const oct = currentOctave + Math.floor(semitone / 12);
+        const oct = instrOctave + Math.floor(semitone / 12);
         const note = semitone % 12;
         if (oct >= 0 && oct <= 7) {
           const noteByte = (oct * 12 + note) + 1;
-          previewNote(0, noteByte, selectedInstr);
+          previewNote(instrPreviewCh, noteByte, selectedInstr);
+          instrPreviewCh = (instrPreviewCh + 1) % 9;
         }
         return;
       }
       if (e.code === 'Backquote') {
         e.preventDefault();
-        stopNotePreview(0);
+        for (let ch = 0; ch < 9; ch++) stopNotePreview(ch);
+        instrPreviewCh = 0;
         return;
       }
-      if (e.key === '+') { e.preventDefault(); currentOctave = Math.min(7, currentOctave + 1); updateEditInfo(); return; }
-      if (e.key === '-') { e.preventDefault(); currentOctave = Math.max(0, currentOctave - 1); updateEditInfo(); return; }
+      if (e.key === '+') { e.preventDefault(); instrOctave = Math.min(7, instrOctave + 1); instrOctaveEl.value = instrOctave; return; }
+      if (e.key === '-') { e.preventDefault(); instrOctave = Math.max(0, instrOctave - 1); instrOctaveEl.value = instrOctave; return; }
       return;
     }
 
@@ -1817,6 +1846,8 @@
     if (hscCompact) {
       hscCompact.instruments[instrIdx][byteIdx] = value;
     }
+    // Reload worklet data so next preview uses updated instrument
+    reloadPreviewData();
     // Update list preview
     const item = instrListEl.children[instrIdx];
     if (item) {
