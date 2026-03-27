@@ -643,7 +643,7 @@
       sampleRate: 48000
     });
 
-    await audioCtx.audioWorklet.addModule('js/audio-worklet.js');
+    await audioCtx.audioWorklet.addModule('js/audio-worklet.js', { type: 'module' });
     workletNode = new AudioWorkletNode(audioCtx, 'hsc-worklet-processor', {
       outputChannelCount: [2]
     });
