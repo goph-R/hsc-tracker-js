@@ -562,28 +562,21 @@
     transition: none;
   }
 
-  /* Shortcuts panel */
+  /* Shortcuts side panel */
   .shortcuts-panel {
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    width: 33%;
+    min-width: 250px;
     background: var(--bg-dark);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    z-index: 900;
-    padding: 16px 24px;
-    max-height: 80vh;
+    border-left: 1px solid var(--border);
+    padding: 12px 16px;
     overflow-y: auto;
-    min-width: 500px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    flex-shrink: 0;
   }
 
-  .shortcuts-panel.visible { display: block; }
+  .shortcuts-panel.hidden { display: none; }
 
   .shortcuts-panel h3 {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: normal;
     color: var(--accent);
     margin-bottom: 8px;
@@ -591,14 +584,14 @@
   }
 
   .shortcuts-panel .shortcut-section {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
 
   .shortcuts-panel .shortcut-section h4 {
     font-size: 11px;
     font-weight: normal;
     color: var(--text);
-    margin-bottom: 4px;
+    margin-bottom: 3px;
     border-bottom: 1px solid var(--border);
     padding-bottom: 2px;
   }
@@ -610,39 +603,15 @@
   }
 
   .shortcuts-panel td {
-    padding: 1px 8px 1px 0;
+    padding: 1px 6px 1px 0;
     color: var(--text-dim);
   }
 
   .shortcuts-panel td:first-child {
     color: var(--text);
     white-space: nowrap;
-    width: 140px;
+    width: 130px;
   }
-
-  .shortcuts-panel .close-btn {
-    position: absolute;
-    top: 8px;
-    right: 12px;
-    background: none;
-    border: none;
-    color: var(--text-dim);
-    font-size: 16px;
-    cursor: pointer;
-    padding: 2px 6px;
-  }
-
-  .shortcuts-panel .close-btn:hover { color: var(--text-bright); }
-
-  .shortcuts-backdrop {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.4);
-    z-index: 899;
-  }
-
-  .shortcuts-backdrop.visible { display: block; }
 
   /* Drop zone */
   .drop-overlay {
@@ -677,33 +646,6 @@
 
   .instr-bar .inst-name {
     color: var(--inst-color);
-  }
-
-  /* Welcome screen */
-  .welcome {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    color: var(--text-dim);
-    gap: 12px;
-  }
-
-  .welcome h2 {
-    color: var(--text);
-    font-weight: normal;
-    font-size: 18px;
-  }
-
-  .welcome p { font-size: 13px; }
-
-  .welcome .shortcut {
-    color: var(--accent);
-    background: var(--bg-light);
-    padding: 2px 8px;
-    border-radius: 3px;
-    font-size: 12px;
   }
 
   input[type="file"] { display: none; }
@@ -759,6 +701,51 @@
       <div class="pattern-header" id="patternHeader"></div>
       <div class="pattern-rows" id="patternRows"></div>
     </div>
+
+    <div class="shortcuts-panel" id="trackerShortcuts">
+      <h3>Shortcuts (F1)</h3>
+      <div class="shortcut-section">
+        <h4>Playback</h4>
+        <table>
+          <tr><td>Enter</td><td>Play from pattern start</td></tr>
+          <tr><td>Shift+Enter</td><td>Play from cursor</td></tr>
+          <tr><td>Ctrl+Enter</td><td>Play from song start</td></tr>
+          <tr><td>Escape</td><td>Stop</td></tr>
+          <tr><td>Space</td><td>Toggle edit mode / Stop</td></tr>
+        </table>
+      </div>
+      <div class="shortcut-section">
+        <h4>Navigation</h4>
+        <table>
+          <tr><td>Up / Down</td><td>Move by row</td></tr>
+          <tr><td>Left / Right</td><td>Move columns (edit)</td></tr>
+          <tr><td>Tab / Shift+Tab</td><td>Next/prev channel (edit)</td></tr>
+          <tr><td>Page Up / Down</td><td>Move 16 rows</td></tr>
+          <tr><td>Home / End</td><td>First / last row</td></tr>
+        </table>
+      </div>
+      <div class="shortcut-section">
+        <h4>Editing</h4>
+        <table>
+          <tr><td>Z S X D C V G B H N J M</td><td>Lower octave notes</td></tr>
+          <tr><td>Q 2 W 3 E R 5 T 6 Y 7 U</td><td>Upper octave notes</td></tr>
+          <tr><td>` (backtick)</td><td>Key-off</td></tr>
+          <tr><td>Insert</td><td>Instrument-set</td></tr>
+          <tr><td>Delete</td><td>Clear cell</td></tr>
+          <tr><td>Backspace</td><td>Clear + move up</td></tr>
+          <tr><td>0-9 A-F</td><td>Effect hex (on effect col)</td></tr>
+          <tr><td>+ / -</td><td>Note octave up / down</td></tr>
+          <tr><td>* / /</td><td>Note semitone up / down</td></tr>
+        </table>
+      </div>
+      <div class="shortcut-section">
+        <h4>Other</h4>
+        <table>
+          <tr><td>Ctrl+S</td><td>Save song</td></tr>
+          <tr><td>F1</td><td>Toggle this panel</td></tr>
+        </table>
+      </div>
+    </div>
   </div>
 
   <div class="instr-bar" id="instrBar">
@@ -780,22 +767,51 @@
       <button id="btnInstrReset" title="Reset current instrument to defaults">Reset</button>
     </div>
   </div>
-  <div class="instr-editor">
-    <div class="instr-list-panel">
-      <div class="instr-list-header">Instruments</div>
-      <div class="instr-list" id="instrList"></div>
-    </div>
-    <div class="instr-params" id="instrParams">
-      <div class="op-columns">
-        <div class="op-column" id="opCarrier">
-          <h4>Carrier</h4>
+  <div style="display:flex; flex:1; overflow:hidden;">
+    <div class="instr-editor">
+      <div class="instr-list-panel">
+        <div class="instr-list-header">Instruments</div>
+        <div class="instr-list" id="instrList"></div>
+      </div>
+      <div class="instr-params" id="instrParams">
+        <div class="op-columns">
+          <div class="op-column" id="opCarrier">
+            <h4>Carrier</h4>
+          </div>
+          <div class="op-column" id="opModulator">
+            <h4>Modulator</h4>
+          </div>
         </div>
-        <div class="op-column" id="opModulator">
-          <h4>Modulator</h4>
+        <div class="global-params" id="globalParams">
+          <h4>Channel</h4>
         </div>
       </div>
-      <div class="global-params" id="globalParams">
-        <h4>Channel</h4>
+    </div>
+
+    <div class="shortcuts-panel" id="instrShortcuts">
+      <h3>Shortcuts (F1)</h3>
+      <div class="shortcut-section">
+        <h4>Preview</h4>
+        <table>
+          <tr><td>Z S X D C V G B H N J M</td><td>Lower octave notes</td></tr>
+          <tr><td>Q 2 W 3 E R 5 T 6 Y 7 U</td><td>Upper octave notes</td></tr>
+          <tr><td>` (backtick)</td><td>Stop all notes</td></tr>
+          <tr><td>+ / -</td><td>Octave up / down</td></tr>
+        </table>
+      </div>
+      <div class="shortcut-section">
+        <h4>Instrument</h4>
+        <table>
+          <tr><td>Ctrl+C</td><td>Copy instrument</td></tr>
+          <tr><td>Ctrl+V</td><td>Paste instrument</td></tr>
+        </table>
+      </div>
+      <div class="shortcut-section">
+        <h4>Other</h4>
+        <table>
+          <tr><td>Ctrl+S</td><td>Save song</td></tr>
+          <tr><td>F1</td><td>Toggle this panel</td></tr>
+        </table>
       </div>
     </div>
   </div>
@@ -812,70 +828,6 @@
       <input type="checkbox" id="settingBlink" checked style="accent-color:var(--accent);">
       Blink effect on note
     </label>
-  </div>
-</div>
-
-<div class="shortcuts-backdrop" id="shortcutsBackdrop"></div>
-<div class="shortcuts-panel" id="shortcutsPanel">
-  <button class="close-btn" id="shortcutsClose">&times;</button>
-  <h3>Keyboard Shortcuts (F1)</h3>
-
-  <div class="shortcut-section">
-    <h4>Global</h4>
-    <table>
-      <tr><td>F1</td><td>Toggle this panel</td></tr>
-      <tr><td>Ctrl+S</td><td>Save song</td></tr>
-      <tr><td>Escape</td><td>Stop playback</td></tr>
-      <tr><td>Enter</td><td>Play from pattern start</td></tr>
-      <tr><td>Shift+Enter</td><td>Play from current position</td></tr>
-      <tr><td>Ctrl+Enter</td><td>Play from song start</td></tr>
-      <tr><td>Space</td><td>Toggle edit mode / Stop</td></tr>
-    </table>
-  </div>
-
-  <div class="shortcut-section">
-    <h4>Tracker - Navigation</h4>
-    <table>
-      <tr><td>Up / Down</td><td>Move cursor by row</td></tr>
-      <tr><td>Left / Right</td><td>Move between note/effect columns (edit mode)</td></tr>
-      <tr><td>Tab / Shift+Tab</td><td>Next / previous channel (edit mode)</td></tr>
-      <tr><td>Page Up / Down</td><td>Move 16 rows</td></tr>
-      <tr><td>Home / End</td><td>Jump to first / last row</td></tr>
-    </table>
-  </div>
-
-  <div class="shortcut-section">
-    <h4>Tracker - Editing (edit mode)</h4>
-    <table>
-      <tr><td>Z S X D C V G B H N J M</td><td>Notes: lower octave (C to B)</td></tr>
-      <tr><td>Q 2 W 3 E R 5 T 6 Y 7 U</td><td>Notes: upper octave (C to B)</td></tr>
-      <tr><td>` (backtick)</td><td>Key-off</td></tr>
-      <tr><td>Insert</td><td>Instrument-set command</td></tr>
-      <tr><td>Delete</td><td>Clear cell</td></tr>
-      <tr><td>Backspace</td><td>Clear cell and move up</td></tr>
-      <tr><td>0-9 A-F (on effect column)</td><td>Enter effect hex digits</td></tr>
-      <tr><td>+ / -</td><td>Shift note octave up / down</td></tr>
-      <tr><td>* / /</td><td>Shift note semitone up / down</td></tr>
-    </table>
-  </div>
-
-  <div class="shortcut-section">
-    <h4>Tracker - Clipboard</h4>
-    <table>
-      <tr><td>Ctrl+C</td><td>Copy instrument (Instruments tab)</td></tr>
-      <tr><td>Ctrl+V</td><td>Paste instrument (Instruments tab)</td></tr>
-    </table>
-  </div>
-
-  <div class="shortcut-section">
-    <h4>Instruments - Preview</h4>
-    <table>
-      <tr><td>Z S X D C V G B H N J M</td><td>Play note: lower octave</td></tr>
-      <tr><td>Q 2 W 3 E R 5 T 6 Y 7 U</td><td>Play note: upper octave</td></tr>
-      <tr><td>` (backtick)</td><td>Stop all preview notes</td></tr>
-      <tr><td>+ / -</td><td>Octave up / down</td></tr>
-      <tr><td>Ctrl+C / Ctrl+V</td><td>Copy / paste instrument</td></tr>
-    </table>
   </div>
 </div>
 
@@ -1851,17 +1803,14 @@
     }
   }
 
-  // ---- Shortcuts panel ----
-  const shortcutsPanel = document.getElementById('shortcutsPanel');
-  const shortcutsBackdrop = document.getElementById('shortcutsBackdrop');
+  // ---- Shortcuts panels ----
+  const trackerShortcuts = document.getElementById('trackerShortcuts');
+  const instrShortcuts = document.getElementById('instrShortcuts');
 
   function toggleShortcuts() {
-    shortcutsPanel.classList.toggle('visible');
-    shortcutsBackdrop.classList.toggle('visible');
+    trackerShortcuts.classList.toggle('hidden');
+    instrShortcuts.classList.toggle('hidden');
   }
-
-  document.getElementById('shortcutsClose').addEventListener('click', toggleShortcuts);
-  shortcutsBackdrop.addEventListener('click', toggleShortcuts);
 
   // ---- Keyboard handling ----
   document.addEventListener('keydown', (e) => {
