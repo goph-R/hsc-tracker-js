@@ -97,3 +97,6 @@ hsc-tracker/
 
 Part of the DOS Game Engine project.
 OPL2 emulation uses DBOPL, a JavaScript port of the DOSBox OPL emulator.
+
+- [Original DBOPL (C++)](https://sourceforge.net/p/dosbox/code-0/HEAD/tree/dosbox/trunk/src/hardware/dbopl.cpp) - DOSBox Team
+- [TypeScript port](https://github.com/tomsoftware/DBOPL) - Thomas Zeugner
