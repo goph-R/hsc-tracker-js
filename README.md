@@ -1,4 +1,4 @@
-# HSC Tracker - Browser-Based AdLib/OPL2 Tracker & Player
+# HSC Tracker JS
 
 A browser-based tracker and player for HSC (AdLib Composer / HSC Tracker) music files.
 Emulates a Yamaha YM3812 (OPL2) synthesizer in JavaScript using DBOPL and the Web Audio API.
@@ -8,11 +8,11 @@ Emulates a Yamaha YM3812 (OPL2) synthesizer in JavaScript using DBOPL and the We
 Try it online: https://hsc-tracker-js.dynart.net
 
 Example HSC files for testing are included in the `music/` folder.
-![HSC Tracker screenshot](images/screenshot-tracker-v1.0.0.png)
+![HSC Tracker JS screenshot](images/screenshot-tracker-v1.0.0.png)
 
 ## Quick Start
 
-HSC Tracker requires a local HTTP server (AudioWorklet won't work over `file://`):
+HSC Tracker JS requires a local HTTP server (AudioWorklet won't work over `file://`):
 
 ```bash
 # Python
@@ -159,9 +159,10 @@ hsc-tracker-js/
 └── README.md
 ```
 
-## License
+## Credits
 
-Part of the DOS Game Engine project.
+The example music are from the original [HSC Tracker](https://www.pouet.net/prod.php?which=64313)
+
 OPL2 emulation uses DBOPL, a JavaScript port of the DOSBox OPL emulator.
 
 - [Original DBOPL (C++)](https://sourceforge.net/p/dosbox/code-0/HEAD/tree/dosbox/trunk/src/hardware/dbopl.cpp) - DOSBox Team

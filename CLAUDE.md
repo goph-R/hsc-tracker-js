@@ -1,10 +1,10 @@
 # CLAUDE.md
 
-Project guidelines for Claude Code when working on HSC Tracker.
+Project guidelines for Claude Code when working on HSC Tracker JS.
 
 ## Project Overview
 
-HSC Tracker is a browser-based AdLib/OPL2 music tracker and player. It loads, edits, and saves HSC music files (AdLib Composer / HSC Tracker format) using DBOPL emulation in an AudioWorklet.
+HSC Tracker JS is a browser-based AdLib/OPL2 music tracker and player. It loads, edits, and saves HSC music files (AdLib Composer / HSC Tracker format) using DBOPL emulation in an AudioWorklet.
 
 ## Tech Stack
 
