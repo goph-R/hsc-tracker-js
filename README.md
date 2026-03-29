@@ -6,8 +6,8 @@ Emulates a Yamaha YM3812 (OPL2) synthesizer in JavaScript using DBOPL and the We
 ## Demo
 
 Try it online: https://hsc-tracker-js.dynart.net
+Example files are included in the `music/` folder.
 
-Example HSC files for testing are included in the `music/` folder.
 ![HSC Tracker JS screenshot](images/screenshot-tracker-v1.1.0.png)
 
 ## Quick Start
@@ -168,7 +168,7 @@ hsc-tracker-js/
 
 ## Credits
 
-The example music are from the original [HSC Tracker](https://www.pouet.net/prod.php?which=64313)
+Music are from the original [HSC Tracker](https://www.pouet.net/prod.php?which=64313)
 
 OPL2 emulation uses DBOPL, a JavaScript port of the DOSBox OPL emulator.
 
