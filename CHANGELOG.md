@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-03-29
+
+### Added
+
+- **MIDI keyboard support** via Web MIDI API
+  - Enable in Settings > MIDI with a checkbox (requests browser permission on enable)
+  - Device selector with hot-plug/unplug detection
+  - Polyphonic instrument preview with channel rotation (works on both Tracker and Instruments tabs)
+  - Note entry in edit mode — MIDI keys write directly to the pattern with absolute pitch
+  - MIDI device selection persisted in settings
+
 ## [1.0.0] - 2026-03-28
 
 ### Added

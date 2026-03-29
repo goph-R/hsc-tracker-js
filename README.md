@@ -39,7 +39,7 @@ Then open `http://localhost:8000` in your browser.
 
 ### Tracker
 - Full pattern editor with cursor navigation and edit mode
-- Note entry via piano keyboard layout (two octaves)
+- Note entry via piano keyboard layout (two octaves) or MIDI keyboard
 - Effect entry with hex digits
 - Key-off, instrument-set, delete/backspace commands
 - Note manipulation: octave shift (+/-), semitone shift (\*//)
@@ -59,6 +59,12 @@ Then open `http://localhost:8000` in your browser.
 - Load/Save single instruments in INS format (Electronic Rats)
 - Copy/paste instruments (Ctrl+C/V)
 
+### MIDI
+- MIDI keyboard input (enable in Settings > MIDI)
+- Polyphonic instrument preview with channel rotation
+- Direct note entry in edit mode with absolute pitch mapping
+- MIDI device selector with hot-plug detection
+
 ### Playback
 - Full OPL2 (YM3812) emulation via DBOPL
 - Tick-accurate sequencer at 18.2 Hz (PC timer frequency)
@@ -76,6 +82,7 @@ Then open `http://localhost:8000` in your browser.
 - Blink effect on note (channel header animation)
 - Help panel visibility (F1 to toggle)
 - QWERTZ keyboard layout support
+- MIDI input enable/disable and device selection
 
 ## Keyboard Shortcuts
 

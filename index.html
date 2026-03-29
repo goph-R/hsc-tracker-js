@@ -61,8 +61,12 @@
     letter-spacing: 2px;
   }
 
-  .header h1 span {
+  .header h1 span.logo-span-1 {
     color: var(--accent);
+  }
+
+  .header h1 span.logo-span-2 {
+    color: #fe0;
   }
 
   .controls {
@@ -651,7 +655,7 @@
 <body>
 
 <div class="header">
-  <h1><span>HSC</span> Tracker JS</h1>
+  <h1><span class="logo-span-1">HSC</span> Tracker <span class="logo-span-2">JS</span></h1>
   <span class="file-info" id="fileInfo">untitled.hsc</span>
 </div>
 
@@ -748,9 +752,9 @@
           <tr><td>F1</td><td>Toggle this panel</td></tr>
         </table>
       </div>     
-      <h3>Effects</h3> 
+      <h3 style="margin: 0">Effects</h3> 
       <div class="shortcut-section">
-        <h4></h4>
+        <h4 style="margin: 0"></h4>
         <table>
           <tr><td>00</td><td>No effect</td></tr>
           <tr><td>01</td><td>Pattern break</td></tr>
@@ -866,6 +870,18 @@
       <input type="checkbox" id="settingQwertz" style="accent-color:var(--accent);">
       Use QWERTZ layout
     </label>
+    <h3 style="font-size:13px; font-weight:normal; color:var(--text-dim); margin-top:20px; margin-bottom:8px; letter-spacing:1px;">MIDI</h3>
+    <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text); cursor:pointer;">
+      <input type="checkbox" id="settingMidiEnabled" style="accent-color:var(--accent);">
+      Enable MIDI input
+    </label>
+    <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text); margin-top:8px;">
+      MIDI Input
+      <select id="midiDevice" disabled style="background:var(--bg-light); color:var(--text); border:1px solid var(--border); padding:3px 6px; font-family:inherit; font-size:12px; border-radius:3px; flex:1;">
+        <option value="">None</option>
+      </select>
+    </label>
+    <div id="midiStatus" style="font-size:11px; color:var(--text-dim); margin-top:4px;"></div>
   </div>
 </div>
 
@@ -907,6 +923,8 @@
     blinkOnNote: true,
     helpVisible: true,
     qwertz: false,
+    midiEnabled: false,
+    midiDeviceId: '',
   };
   // Load from localStorage
   try {
@@ -945,6 +963,151 @@
     saveSettings();
     applyKeyLayout();
   });
+
+  // ---- MIDI ----
+  let midiAccess = null;
+  let midiInput = null;
+  const midiKeyToCh = {};   // maps MIDI note number → preview channel
+  let midiPreviewCh = 0;    // rotating channel for polyphonic MIDI preview
+  const midiDeviceEl = document.getElementById('midiDevice');
+  const midiStatusEl = document.getElementById('midiStatus');
+
+  function midiNoteToHSC(midiNote) {
+    const shifted = midiNote - 36; // MIDI C2 → HSC C-0
+    if (shifted < 0 || shifted > 95) return null;
+    return shifted + 1;
+  }
+
+  function populateMidiDevices() {
+    if (!midiAccess) return;
+    const prev = midiDeviceEl.value;
+    midiDeviceEl.innerHTML = '<option value="">None</option>';
+    for (const [id, port] of midiAccess.inputs) {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = port.name || id;
+      midiDeviceEl.appendChild(opt);
+    }
+    // Restore previous selection or saved setting
+    const target = prev || settings.midiDeviceId;
+    if (target) {
+      midiDeviceEl.value = target;
+      if (!midiDeviceEl.value) midiDeviceEl.value = ''; // device gone
+    }
+    bindMidiInput();
+  }
+
+  function onMIDIMessage(e) {
+    const [status, note, velocity] = e.data;
+    const cmd = status & 0xF0;
+
+    // Note-on
+    if (cmd === 0x90 && velocity > 0) {
+      const noteByte = midiNoteToHSC(note);
+      if (noteByte === null) return;
+
+      // Edit mode — write note to pattern
+      if (editMode && !isPlaying && !isInstrTabActive() && cursorCol === 0) {
+        const pat = hscData.patterns[currentPatIdx];
+        const effectByte = pat[cursorRow][cursorCh].effect;
+        writeNoteToPattern(cursorRow, cursorCh, noteByte, effectByte);
+        previewNote(cursorCh, noteByte);
+        midiKeyToCh[note] = cursorCh;
+        advanceCursor();
+        return;
+      }
+
+      // Phase 1: Preview (instrument tab or non-edit tracker tab)
+      const ch = midiPreviewCh;
+      const instrIdx = isInstrTabActive() ? selectedInstr : currentInstrument;
+      previewNote(ch, noteByte, instrIdx);
+      midiKeyToCh[note] = ch;
+      midiPreviewCh = (midiPreviewCh + 1) % 9;
+      return;
+    }
+
+    // Note-off
+    if (cmd === 0x80 || (cmd === 0x90 && velocity === 0)) {
+      if (midiKeyToCh[note] !== undefined) {
+        stopNotePreview(midiKeyToCh[note]);
+        delete midiKeyToCh[note];
+      }
+    }
+  }
+
+  function bindMidiInput() {
+    // Unbind old
+    if (midiInput) {
+      midiInput.onmidimessage = null;
+      midiInput = null;
+    }
+    const id = midiDeviceEl.value;
+    if (id && midiAccess) {
+      midiInput = midiAccess.inputs.get(id);
+      if (midiInput) {
+        midiInput.onmidimessage = onMIDIMessage;
+        midiStatusEl.textContent = 'Connected: ' + (midiInput.name || id);
+      } else {
+        midiStatusEl.textContent = '';
+      }
+    } else {
+      midiStatusEl.textContent = '';
+    }
+    settings.midiDeviceId = id;
+    saveSettings();
+  }
+
+  midiDeviceEl.addEventListener('change', bindMidiInput);
+
+  function shutdownMIDI() {
+    if (midiInput) {
+      midiInput.onmidimessage = null;
+      midiInput = null;
+    }
+    midiAccess = null;
+    midiDeviceEl.innerHTML = '<option value="">None</option>';
+    midiDeviceEl.disabled = true;
+    midiStatusEl.textContent = '';
+  }
+
+  async function initMIDI() {
+    if (!navigator.requestMIDIAccess) {
+      midiStatusEl.textContent = 'Web MIDI not supported in this browser';
+      settings.midiEnabled = false;
+      settingMidiEnabledEl.checked = false;
+      saveSettings();
+      return;
+    }
+    try {
+      midiAccess = await navigator.requestMIDIAccess();
+      midiAccess.onstatechange = () => populateMidiDevices();
+      midiDeviceEl.disabled = false;
+      populateMidiDevices();
+    } catch (err) {
+      midiStatusEl.textContent = 'MIDI access denied';
+      settings.midiEnabled = false;
+      settingMidiEnabledEl.checked = false;
+      saveSettings();
+    }
+  }
+
+  const settingMidiEnabledEl = document.getElementById('settingMidiEnabled');
+  settingMidiEnabledEl.checked = settings.midiEnabled;
+
+  settingMidiEnabledEl.addEventListener('change', () => {
+    settings.midiEnabled = settingMidiEnabledEl.checked;
+    saveSettings();
+    if (settings.midiEnabled) {
+      initMIDI();
+    } else {
+      shutdownMIDI();
+    }
+  });
+
+  // Init MIDI on load if previously enabled
+  if (settings.midiEnabled) {
+    initMIDI();
+  }
 
   // Note names for display
   const NOTE_NAMES = ['C-', 'C#', 'D-', 'D#', 'E-', 'F-', 'F#', 'G-', 'G#', 'A-', 'A#', 'B-'];
@@ -1539,6 +1702,7 @@
       scrollToRow(patRow);
       lastHighlightRow = patRow;
     }
+
   }
 
   // ---- Audio ----

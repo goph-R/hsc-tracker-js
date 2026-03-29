@@ -112,6 +112,7 @@ class HSCWorkletProcessor extends AudioWorkletProcessor {
               this.chLevels[c] = 1.0;
             }
           }
+
         }
       }
     }
